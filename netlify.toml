@@ -1,0 +1,27 @@
+[build]
+  publish = "."
+  functions = "netlify/functions"
+  command = "npm run build"
+
+[functions]
+  node_bundler = "esbuild"
+
+[[redirects]]
+  from = "/"
+  to = "/art-community.html"
+  status = 200
+
+[[redirects]]
+  from = "/art-community"
+  to = "/art-community.html"
+  status = 200
+
+[[redirects]]
+  from = "/artist-submit"
+  to = "/artist-submit.html"
+  status = 200
+
+[[redirects]]
+  from = "/art-voting"
+  to = "/art-voting.html"
+  status = 200
