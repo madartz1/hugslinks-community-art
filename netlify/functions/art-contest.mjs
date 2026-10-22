@@ -2,6 +2,8 @@ import {neon} from "@neondatabase/serverless";
 import {getStore,json,digest,guestVoter} from "./_art-voter-auth.mjs";
 
 export default async request=>{
+  // Recovery deployment: block write operations until explicitly enabled after data/auth review.
+  if(request.method!=="GET" && process.env.HUGS_ENABLE_PUBLIC_VOTING!=="true")return json({ok:false,error:"Public voting is not open yet."},503);
   if(!process.env.HUGS_VOTER_SESSION_SECRET||!process.env.HUGS_VOTING_DATABASE_URL)return json({ok:false,error:"Voting not configured"},503);
   const sql=neon(process.env.HUGS_VOTING_DATABASE_URL);
   const contest=await getStore("hugs-art-contests").get("current",{type:"json",consistency:"strong"});
