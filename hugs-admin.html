@@ -1,0 +1,4347 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <meta
+    name="robots"
+    content="noindex, nofollow, noarchive"
+  >
+
+  <title>HUGS Admin | HUGSLinks</title>
+
+  <link
+    rel="stylesheet"
+    href="styles.css"
+  >
+
+  <style>
+
+    :root{
+      --navy:#06162f;
+      --blue:#1267ff;
+      --gold:#d9ad45;
+      --light:#f4f7fb;
+      --white:#ffffff;
+      --text:#14213d;
+      --muted:#68758b;
+      --border:#dce3ec;
+      --green:#137a4b;
+      --red:#b42318;
+      --orange:#a15c00;
+    }
+
+    *{
+      box-sizing:border-box;
+    }
+
+    body{
+      margin:0;
+      background:var(--light);
+      color:var(--text);
+    }
+
+    .admin-shell{
+      width:min(1180px,92%);
+      margin:0 auto;
+    }
+
+    .admin-hero{
+      padding:65px 20px 50px;
+      text-align:center;
+      color:white;
+      background:
+        linear-gradient(
+          135deg,
+          #06162f,
+          #0a3478
+        );
+    }
+
+    .admin-badge{
+      display:inline-block;
+      margin-bottom:16px;
+      padding:8px 14px;
+      border:1px solid rgba(255,255,255,.3);
+      border-radius:999px;
+      font-size:.78rem;
+      font-weight:800;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+    }
+
+    .admin-hero h1{
+      margin:0 0 12px;
+      font-size:clamp(2.2rem,6vw,4rem);
+    }
+
+    .admin-hero p{
+      max-width:760px;
+      margin:0 auto;
+      line-height:1.7;
+      color:rgba(255,255,255,.88);
+    }
+
+    .admin-content{
+      padding:35px 0 80px;
+    }
+
+    .security-notice{
+      margin-bottom:24px;
+      padding:18px;
+      background:#fff7e5;
+      border:1px solid #f1d38a;
+      border-radius:18px;
+      color:#62470d;
+      line-height:1.6;
+    }
+
+    .login-card{
+      max-width:620px;
+      margin:20px auto;
+      padding:28px;
+      background:white;
+      border-radius:22px;
+      box-shadow:0 12px 40px rgba(7,29,64,.08);
+    }
+
+    .login-card h2{
+      margin-top:0;
+      color:var(--navy);
+    }
+
+    .field{
+      margin-bottom:17px;
+    }
+
+    .field label{
+      display:block;
+      margin-bottom:7px;
+      font-weight:800;
+      color:var(--navy);
+    }
+
+    .field input,
+    .field textarea,
+    .field select{
+      width:100%;
+      padding:13px 14px;
+      border:1px solid var(--border);
+      border-radius:12px;
+      background:white;
+      color:var(--text);
+      font:inherit;
+    }
+
+    .field textarea{
+      min-height:125px;
+      resize:vertical;
+    }
+
+    button{
+      font:inherit;
+    }
+
+    .primary-button,
+    .secondary-button,
+    .danger-button,
+    .hold-button{
+      padding:12px 17px;
+      border-radius:12px;
+      font-weight:800;
+      cursor:pointer;
+    }
+
+    .primary-button{
+      border:0;
+      background:var(--blue);
+      color:white;
+    }
+
+    .secondary-button{
+      border:0;
+      background:var(--navy);
+      color:white;
+    }
+
+    .danger-button{
+      background:#fff0ee;
+      color:var(--red);
+      border:1px solid #f4c7c3;
+    }
+
+    .hold-button{
+      background:#fff7e5;
+      color:var(--orange);
+      border:1px solid #efd18c;
+    }
+
+    button:disabled{
+      opacity:.55;
+      cursor:not-allowed;
+    }
+
+    #adminDashboard{
+      display:none;
+    }
+
+    .admin-toolbar{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:15px;
+      flex-wrap:wrap;
+      margin-bottom:24px;
+    }
+
+    .admin-toolbar h2{
+      margin:0;
+      color:var(--navy);
+    }
+
+    .toolbar-buttons{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+
+    .summary-grid{
+      display:grid;
+      grid-template-columns:
+        repeat(
+          auto-fit,
+          minmax(180px,1fr)
+        );
+      gap:14px;
+      margin-bottom:28px;
+    }
+
+    .summary-card{
+      padding:20px;
+      background:white;
+      border:1px solid var(--border);
+      border-radius:18px;
+    }
+
+    .summary-number{
+      display:block;
+      font-size:2rem;
+      font-weight:900;
+      color:var(--blue);
+    }
+
+    .summary-label{
+      color:var(--muted);
+      font-size:.9rem;
+    }
+
+    .admin-tabs{
+      display:flex;
+      gap:9px;
+      flex-wrap:wrap;
+      margin-bottom:24px;
+    }
+
+    .tab-button{
+      padding:11px 16px;
+      background:white;
+      border:1px solid var(--border);
+      border-radius:999px;
+      color:var(--navy);
+      font-weight:800;
+      cursor:pointer;
+    }
+
+    .tab-button.active{
+      background:var(--navy);
+      color:white;
+    }
+
+    .admin-section{
+      display:none;
+    }
+
+    .admin-section.active{
+      display:block;
+    }
+
+    .record-grid{
+      display:grid;
+      gap:20px;
+    }
+
+    .record-card{
+      padding:23px;
+      background:white;
+      border:1px solid var(--border);
+      border-radius:22px;
+      box-shadow:0 8px 28px rgba(7,29,64,.05);
+    }
+
+    .record-top{
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      gap:14px;
+      flex-wrap:wrap;
+      margin-bottom:17px;
+    }
+
+    .record-id{
+      color:var(--blue);
+      font-size:.78rem;
+      font-weight:900;
+      word-break:break-word;
+    }
+
+    .record-card h3{
+      margin:5px 0;
+      color:var(--navy);
+    }
+
+    .status{
+      display:inline-block;
+      padding:7px 11px;
+      border-radius:999px;
+      font-size:.76rem;
+      font-weight:900;
+    }
+
+    .status-pending{
+      background:#eef5ff;
+      color:#1459b8;
+    }
+
+    .status-approved{
+      background:#eaf8f0;
+      color:var(--green);
+    }
+
+    .status-hold{
+      background:#fff6df;
+      color:var(--orange);
+    }
+
+    .status-declined{
+      background:#fff0ee;
+      color:var(--red);
+    }
+
+    .record-details{
+      display:grid;
+      grid-template-columns:
+        repeat(
+          auto-fit,
+          minmax(190px,1fr)
+        );
+      gap:12px;
+      margin:18px 0;
+    }
+
+    .detail{
+      padding:13px;
+      background:#f8fafc;
+      border-radius:12px;
+      overflow-wrap:anywhere;
+    }
+
+    .detail strong{
+      display:block;
+      margin-bottom:4px;
+      color:var(--navy);
+      font-size:.78rem;
+      text-transform:uppercase;
+    }
+
+    .private-box{
+      margin:18px 0;
+      padding:16px;
+      background:#fff8e8;
+      border-left:4px solid var(--gold);
+      border-radius:0 12px 12px 0;
+      white-space:pre-wrap;
+      line-height:1.6;
+      overflow-wrap:anywhere;
+    }
+
+    .privacy-warning{
+      margin-bottom:8px;
+      color:var(--red);
+      font-size:.8rem;
+      font-weight:900;
+    }
+
+    .mission-builder{
+      margin-top:22px;
+      padding-top:22px;
+      border-top:1px solid var(--border);
+    }
+
+    .mission-builder h4{
+      margin-top:0;
+      color:var(--navy);
+    }
+
+    .action-row{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-top:18px;
+    }
+
+    .empty-state,
+    .loading{
+      padding:42px 24px;
+      background:white;
+      border:1px dashed var(--border);
+      border-radius:20px;
+      text-align:center;
+      color:var(--muted);
+    }
+
+    .route-panel{
+      max-width:850px;
+      margin-bottom:22px;
+      padding:26px;
+      background:white;
+      border:1px solid var(--border);
+      border-radius:22px;
+      box-shadow:0 8px 28px rgba(7,29,64,.05);
+    }
+
+    .route-panel h3{
+      margin-top:5px;
+      color:var(--navy);
+    }
+
+    .route-intro{
+      line-height:1.7;
+      color:var(--muted);
+    }
+
+    .route-warning{
+      margin:20px 0;
+      padding:17px;
+      background:#fff7e5;
+      border:1px solid #efd18c;
+      border-radius:15px;
+      color:#62470d;
+      line-height:1.6;
+    }
+
+    .route-grid{
+      display:grid;
+      grid-template-columns:
+        repeat(
+          2,
+          minmax(0,1fr)
+        );
+      gap:18px;
+    }
+
+    .route-location{
+      padding:20px;
+      background:#f8fafc;
+      border:1px solid var(--border);
+      border-radius:18px;
+    }
+
+    .route-location h4{
+      margin:0 0 15px;
+      color:var(--navy);
+    }
+
+    .coordinate-grid{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:12px;
+    }
+
+    .route-privacy{
+      margin-top:20px;
+      padding:17px;
+      border-left:4px solid var(--blue);
+      background:#eef5ff;
+      border-radius:0 14px 14px 0;
+      line-height:1.65;
+      color:#244b7e;
+    }
+
+    .route-result{
+      display:none;
+      margin-top:18px;
+      padding:16px;
+      border-radius:14px;
+      background:#eaf8f0;
+      color:var(--green);
+      line-height:1.6;
+      font-weight:700;
+    }
+
+    .tracking-result{
+      display:none;
+      margin-top:22px;
+      padding:20px;
+      border:1px solid #b9d5ff;
+      border-radius:18px;
+      background:#f2f7ff;
+    }
+
+    .tracking-result-notice{
+      margin-bottom:15px;
+      color:#244b7e;
+      line-height:1.6;
+    }
+
+    .tracking-code{
+      font-family:
+        ui-monospace,
+        SFMono-Regular,
+        Menlo,
+        Monaco,
+        Consolas,
+        monospace;
+      word-break:break-all;
+    }
+
+    .message{
+      display:none;
+      position:fixed;
+      z-index:9999;
+      left:50%;
+      bottom:24px;
+      transform:translateX(-50%);
+      width:min(520px,90%);
+      padding:15px 18px;
+      border-radius:14px;
+      color:white;
+      font-weight:800;
+      box-shadow:0 12px 35px rgba(0,0,0,.2);
+    }
+
+    .message.success{
+      display:block;
+      background:var(--green);
+    }
+
+    .message.error{
+      display:block;
+      background:var(--red);
+    }
+
+    @media(max-width:750px){
+
+      .route-grid{
+        grid-template-columns:1fr;
+      }
+
+    }
+
+    @media(max-width:650px){
+
+      .record-card{
+        padding:17px;
+      }
+
+      .action-row{
+        display:grid;
+      }
+
+      .action-row button{
+        width:100%;
+      }
+
+      .toolbar-buttons{
+        width:100%;
+      }
+
+      .toolbar-buttons button{
+        flex:1;
+      }
+
+      .coordinate-grid{
+        grid-template-columns:1fr;
+      }
+
+      .route-panel{
+        padding:18px;
+      }
+
+    }
+
+  
+    .admin-lockup{width:74px;height:74px;margin:0 auto 16px;display:grid;place-items:center;border-radius:22px;background:linear-gradient(145deg,#071f3b,#1267ff);box-shadow:0 14px 34px rgba(7,31,59,.18)}
+    .admin-lockup img{width:54px;height:54px;object-fit:contain}
+    .login-card{text-align:center;border:1px solid rgba(18,103,255,.1)}
+    .login-card .field{text-align:left}
+    .admin-private-label{display:inline-flex;align-items:center;gap:7px;margin-bottom:10px;color:#1267ff;font-size:.78rem;font-weight:900;letter-spacing:.08em;text-transform:uppercase}
+    .token-wrap{position:relative}.token-wrap input{padding-right:76px}.token-toggle{position:absolute;right:7px;top:7px;border:0;background:#eef7ff;color:#071f3b;border-radius:9px;padding:7px 9px;font-weight:800;cursor:pointer}
+    .login-card .primary-button{width:100%;min-height:48px}
+    .admin-security-copy{font-size:.88rem;color:var(--muted);line-height:1.55;margin:14px 0 0}
+  </style>
+</head>
+
+
+<body>
+
+<section class="admin-hero">
+
+  <div class="admin-shell">
+
+    <div class="admin-badge">
+      Private HUGS Control Center
+    </div>
+
+    <h1>HUGS Admin</h1>
+
+    <p>
+      Review HUG Requests, approve HUGS Helpers,
+      create safe public missions, manage
+      Helper-to-Mission connections, prepare
+      private delivery routes and issue protected
+      recipient tracking access.
+    </p>
+
+  </div>
+
+</section>
+
+
+<main class="admin-content">
+
+<div class="admin-shell">
+
+  <div class="security-notice">
+
+    <strong>Private administration area.</strong>
+
+    Requester, Helper, pickup, destination and
+    tracking information shown here must remain
+    private. Only sanitized mission information
+    should appear on the public HUG Missions board.
+
+  </div>
+
+
+  <!-- LOGIN -->
+
+  <section
+    class="login-card"
+    id="loginCard"
+  >
+
+    <div class="admin-lockup"><img src="assets/HUGS_Header_Logo_Transparent.png" alt=""></div>
+    <div class="admin-private-label">🔒 Private Owner Access</div>
+    <h2>HUGS Admin Sign In</h2>
+
+    <p>
+      Enter your HUGS Admin Token.
+      The token is kept only in this browser tab
+      while the Admin Center is open.
+    </p>
+
+    <div class="field">
+
+      <label for="adminToken">
+        Admin Token
+      </label>
+
+      <input
+        type="password"
+        id="adminToken"
+        autocomplete="off"
+        placeholder="Enter admin token"
+      >
+
+    </div>
+
+    <button
+      class="primary-button"
+      id="loginButton"
+      type="button"
+    >
+      Open HUGS Admin
+    </button>
+
+  </section>
+
+
+  <!-- DASHBOARD -->
+
+  <section id="adminDashboard">
+
+    <div class="admin-toolbar">
+
+      <h2>
+        HUGS Help Operations
+      </h2>
+
+      <div class="toolbar-buttons">
+
+        <button
+          class="secondary-button"
+          id="refreshButton"
+          type="button"
+        >
+          Refresh
+        </button>
+
+        <button
+          class="danger-button"
+          id="logoutButton"
+          type="button"
+        >
+          Lock Admin
+        </button>
+
+      </div>
+
+    </div>
+
+
+    <div class="summary-grid">
+
+      <div class="summary-card">
+
+        <span
+          class="summary-number"
+          id="pendingRequestCount"
+        >
+          0
+        </span>
+
+        <span class="summary-label">
+          Pending Requests
+        </span>
+
+      </div>
+
+
+      <div class="summary-card">
+
+        <span
+          class="summary-number"
+          id="registeredHelperCount"
+        >
+          0
+        </span>
+
+        <span class="summary-label">
+          Helpers Awaiting Approval
+        </span>
+
+      </div>
+
+
+      <div class="summary-card">
+
+        <span
+          class="summary-number"
+          id="pendingMatchCount"
+        >
+          0
+        </span>
+
+        <span class="summary-label">
+          Pending Helper Matches
+        </span>
+
+      </div>
+
+    </div>
+
+
+    <div class="admin-tabs">
+
+      <button
+        class="tab-button active"
+        data-tab="requests"
+        type="button"
+      >
+        HUG Requests
+      </button>
+
+      <button class="tab-button" data-tab="support" type="button">Support</button>
+
+      <button class="tab-button" data-tab="artists" type="button">Artists</button>
+      <button class="tab-button" data-tab="gallery" type="button">Art Gallery</button><button class="tab-button" data-tab="contest" type="button">Art Competition</button>
+
+      <button
+        class="tab-button"
+        data-tab="food"
+        type="button"
+      >
+        Food Partners
+      </button>
+
+      <button
+        class="tab-button"
+        data-tab="helpers"
+        type="button"
+      >
+        HUGS Helpers
+      </button>
+
+      <button
+        class="tab-button"
+        data-tab="matches"
+        type="button"
+      >
+        Helper Matches
+      </button>
+
+      <button
+        class="tab-button"
+        data-tab="routes"
+        type="button"
+      >
+        Mission Routes
+      </button>
+
+    </div>
+
+
+    <!-- REQUESTS -->
+
+    <section
+      class="admin-section active"
+      id="requestsSection"
+    >
+
+      <div
+        class="record-grid"
+        id="requestList"
+      >
+        <div class="loading">
+          Loading HUG Requests...
+        </div>
+      </div>
+
+    </section>
+
+
+    <!-- SUPPORT -->
+    <section class="admin-section" id="supportSection"><div class="record-grid" id="supportList"><div class="loading">Loading support requests...</div></div></section>
+
+    <!-- ARTISTS -->
+    <section class="admin-section" id="artistsSection"><div class="record-grid" id="artistList"><div class="loading">Loading artist submissions...</div></div></section>
+
+    <section class="admin-section" id="contestSection"><div class="record-card"><h3>Art Competition</h3><button class="secondary-button" type="button" id="contestHealth">Check Voting Setup</button><p id="contestHealthStatus" role="status" aria-live="polite"></p><p>Choose a limited number of published entries, open and close voting, then publish first, second and third place.</p><div class="field"><label>Competition name</label><input id="contestName" value="HUGS Art Spotlight"></div><div class="field"><label>Maximum entries (3–30)</label><input id="contestLimit" type="number" min="3" max="30" value="10"></div><button class="primary-button" id="contestCreate" type="button">Create Competition</button><p id="contestAdminStatus" role="status" aria-live="polite"></p><div id="contestAdminEntries"></div><button class="secondary-button" id="contestSet" type="button">Save Selected Entries</button><button class="primary-button" id="contestOpen" type="button">Open Voting</button><button class="hold-button" id="contestClose" type="button">Close Voting</button><button class="primary-button" id="contestPublish" type="button">Publish Top 3</button></div></section><section class="admin-section" id="gallerySection"><div class="record-card"><h3>Manage Art Gallery</h3><p>Add or replace artwork directly from your phone. Only published records appear publicly.</p><div class="field"><label>Artwork ID (leave blank for new)</label><input id="galleryId" readonly placeholder="New artwork"></div><div class="field"><label>Title</label><input id="galleryTitle"></div><div class="field"><label>Artist</label><input id="galleryArtist"></div><div class="field"><label>Collection</label><select id="galleryCollection"><option>Black Gold Series</option><option>Luxe Collection</option></select></div><div class="field"><label>Choose image (JPEG, PNG or WebP, up to 8 MB)</label><input id="galleryUpload" type="file" accept="image/jpeg,image/png,image/webp"><img id="galleryPreview" alt="Artwork preview" style="display:none;max-width:100%;max-height:320px;object-fit:contain;border-radius:12px;margin:12px 0"><button class="secondary-button" id="galleryUploadButton" type="button">Upload Selected Image</button><p id="galleryUploadStatus" role="status" aria-live="polite"></p></div><div class="field"><label>Image URL (automatically filled after upload)</label><input id="galleryImage" type="text"></div><div class="field"><label>Medium</label><input id="galleryMedium"></div><div class="field"><label>Description</label><textarea id="galleryDescription"></textarea></div><label><input id="galleryPublished" type="checkbox" checked> Publish publicly</label><p><button class="primary-button" id="gallerySave" type="button">Save / Replace Artwork</button> <button class="secondary-button" id="galleryNew" type="button">New Artwork</button></p></div><div class="record-grid" id="galleryList" style="margin-top:20px"></div></section>
+<!-- FOOD PARTNERS -->
+    <section class="admin-section" id="foodSection">
+      <div class="record-card" style="margin-bottom:18px;"><h3>HUGS Food Network Directory</h3><p>Manage public HUGS food listings and B2B partner inquiries separately from private pickup/donation operations.</p><a class="primary-button" href="food-network-admin.html" style="display:inline-block;text-decoration:none;">Open Food Network Admin</a></div>
+      <div class="record-grid" id="foodOfferList">
+        <div class="loading">Loading private food partner offers...</div>
+      </div>
+    </section>
+
+    <!-- HELPERS -->
+
+    <section
+      class="admin-section"
+      id="helpersSection"
+    >
+
+      <div
+        class="record-grid"
+        id="helperList"
+      >
+        <div class="loading">
+          Loading HUGS Helpers...
+        </div>
+      </div>
+
+    </section>
+
+
+    <!-- MATCHES -->
+
+    <section
+      class="admin-section"
+      id="matchesSection"
+    >
+
+      <div
+        class="record-grid"
+        id="matchList"
+      >
+        <div class="loading">
+          Loading Helper matches...
+        </div>
+      </div>
+
+    </section>
+
+
+    <!-- ROUTES -->
+
+    <section
+      class="admin-section"
+      id="routesSection"
+    >
+
+      <!-- PRIVATE ROUTE -->
+
+      <div class="route-panel">
+
+        <div class="record-id">
+          PRIVATE ROUTING
+        </div>
+
+        <h3>
+          Prepare HUG Mission Route
+        </h3>
+
+        <p class="route-intro">
+          Add the private pickup and destination
+          after a Helper has been assigned to a
+          HUG Mission.
+        </p>
+
+
+        <div class="route-warning">
+
+          <strong>
+            Important:
+          </strong>
+
+          These locations are private operational
+          information. Do not put exact addresses
+          or coordinates into the public Mission
+          summary.
+
+        </div>
+
+
+        <div class="field">
+
+          <label for="routeMissionId">
+            Assigned Mission Number
+          </label>
+
+          <input
+            id="routeMissionId"
+            type="text"
+            autocomplete="off"
+            placeholder="Example: HUG-2026-XXXXXXXX"
+          >
+
+        </div>
+
+
+        <div class="route-grid">
+
+
+          <div class="route-location">
+
+            <h4>
+              📍 Pickup
+            </h4>
+
+            <div class="field">
+
+              <label for="pickupLabel">
+                Pickup Label
+              </label>
+
+              <input
+                id="pickupLabel"
+                type="text"
+                autocomplete="off"
+                placeholder="Example: Community Food Partner"
+              >
+
+            </div>
+
+
+            <div class="coordinate-grid">
+
+              <div class="field">
+
+                <label for="pickupLatitude">
+                  Latitude
+                </label>
+
+                <input
+                  id="pickupLatitude"
+                  type="number"
+                  step="any"
+                  inputmode="decimal"
+                  placeholder="40.000000"
+                >
+
+              </div>
+
+
+              <div class="field">
+
+                <label for="pickupLongitude">
+                  Longitude
+                </label>
+
+                <input
+                  id="pickupLongitude"
+                  type="number"
+                  step="any"
+                  inputmode="decimal"
+                  placeholder="-73.000000"
+                >
+
+              </div>
+
+            </div>
+
+          </div>
+
+
+          <div class="route-location">
+
+            <h4>
+              ❤️ Destination
+            </h4>
+
+            <div class="field">
+
+              <label for="destinationLabel">
+                Destination Label
+              </label>
+
+              <input
+                id="destinationLabel"
+                type="text"
+                autocomplete="off"
+                placeholder="Example: Recipient Delivery"
+              >
+
+            </div>
+
+
+            <div class="coordinate-grid">
+
+              <div class="field">
+
+                <label for="destinationLatitude">
+                  Latitude
+                </label>
+
+                <input
+                  id="destinationLatitude"
+                  type="number"
+                  step="any"
+                  inputmode="decimal"
+                  placeholder="40.000000"
+                >
+
+              </div>
+
+
+              <div class="field">
+
+                <label for="destinationLongitude">
+                  Longitude
+                </label>
+
+                <input
+                  id="destinationLongitude"
+                  type="number"
+                  step="any"
+                  inputmode="decimal"
+                  placeholder="-73.000000"
+                >
+
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+
+
+        <div class="route-privacy">
+
+          <strong>
+            Destination Privacy Lock
+          </strong>
+
+          <br>
+
+          The assigned Helper receives the pickup
+          first. The destination remains hidden
+          while the Mission is
+          <strong>Accepted</strong> or
+          <strong>At Pickup</strong>.
+
+          <br><br>
+
+          The destination becomes available only
+          after the Helper confirms
+          <strong>Items Received</strong>.
+
+        </div>
+
+
+        <div class="action-row">
+
+          <button
+            class="primary-button"
+            id="saveRouteButton"
+            type="button"
+          >
+            Save Private Route
+          </button>
+
+          <button
+            class="secondary-button"
+            id="clearRouteButton"
+            type="button"
+          >
+            Clear Form
+          </button>
+
+        </div>
+
+
+        <div
+          class="route-result"
+          id="routeResult"
+        ></div>
+
+      </div>
+
+
+      <!-- RECIPIENT TRACKING -->
+
+      <div class="route-panel">
+
+        <div class="record-id">
+          PRIVATE RECIPIENT TRACKING
+        </div>
+
+        <h3>
+          Issue Recipient Tracking Access
+        </h3>
+
+        <p class="route-intro">
+          Generate a private tracking credential
+          for the recipient of an active HUG
+          Mission.
+        </p>
+
+
+        <div class="route-warning">
+
+          <strong>
+            Private credential:
+          </strong>
+
+          Only give this tracking code to the
+          intended recipient.
+
+          <br><br>
+
+          Issuing a new code invalidates the
+          previously issued recipient tracking
+          code for the active Helper session.
+
+        </div>
+
+
+        <div class="field">
+
+          <label for="trackingMissionId">
+            Active Mission Number
+          </label>
+
+          <input
+            id="trackingMissionId"
+            type="text"
+            autocomplete="off"
+            placeholder="Example: HUG-2026-XXXXXXXX"
+          >
+
+        </div>
+
+
+        <div class="action-row">
+
+          <button
+            class="primary-button"
+            id="issueTrackingButton"
+            type="button"
+          >
+            Issue Recipient Tracking Access
+          </button>
+
+          <button
+            class="secondary-button"
+            id="clearTrackingButton"
+            type="button"
+          >
+            Clear Tracking Access
+          </button>
+
+        </div>
+
+
+        <div
+          class="tracking-result"
+          id="trackingAccessResult"
+        >
+
+          <div class="tracking-result-notice">
+
+            <strong>
+              Recipient tracking access created.
+            </strong>
+
+            <br>
+
+            Copy this code now. HUGS will not be
+            able to retrieve this exact plaintext
+            code again.
+
+          </div>
+
+
+          <div class="record-details">
+
+            <div class="detail">
+
+              <strong>
+                Mission
+              </strong>
+
+              <span id="trackingResultMission">
+                —
+              </span>
+
+            </div>
+
+
+            <div class="detail">
+
+              <strong>
+                Mission Status
+              </strong>
+
+              <span id="trackingResultStatus">
+                —
+              </span>
+
+            </div>
+
+
+            <div class="detail">
+
+              <strong>
+                Expires
+              </strong>
+
+              <span id="trackingResultExpires">
+                —
+              </span>
+
+            </div>
+
+          </div>
+
+
+          <div class="field">
+
+            <label for="trackingCodeDisplay">
+              Private Recipient Tracking Code
+            </label>
+
+            <input
+              class="tracking-code"
+              id="trackingCodeDisplay"
+              type="text"
+              readonly
+              autocomplete="off"
+              spellcheck="false"
+            >
+
+          </div>
+
+
+          <div class="action-row">
+
+            <button
+              class="primary-button"
+              id="copyTrackingCodeButton"
+              type="button"
+            >
+              Copy Tracking Code
+            </button>
+
+            <button
+              class="secondary-button"
+              id="copyTrackingPageButton"
+              type="button"
+            >
+              Copy Tracking Page Address
+            </button>
+
+            <button
+              class="danger-button"
+              id="hideTrackingCodeButton"
+              type="button"
+            >
+              Clear Code From Screen
+            </button>
+
+          </div>
+
+
+          <div class="route-privacy">
+
+            <strong>
+              Give the recipient two things:
+            </strong>
+
+            <br><br>
+
+            1. The private HUGS tracking page.
+
+            <br>
+
+            2. The tracking code shown above.
+
+            <br><br>
+
+            The code is intentionally kept out of
+            the URL so it does not become part of
+            browser history, analytics or referral
+            information.
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </section>
+
+  </section>
+
+</div>
+
+</main>
+
+
+<div
+  class="message"
+  id="messageBox"
+></div>
+
+
+<script>
+
+/* ==========================================
+   CONFIGURATION
+========================================== */
+
+const API =
+  "/.netlify/functions/admin-hug-missions";
+
+const ROUTE_API =
+  "/.netlify/functions/admin-hug-route";
+
+const TRACKING_ACCESS_API =
+  "/.netlify/functions/admin-issue-hug-tracking";
+
+const FOOD_API =
+  "/.netlify/functions/admin-food-partners";
+
+const ARTIST_API =
+  "/.netlify/functions/admin-artists";
+
+
+const GALLERY_API="/.netlify/functions/admin-art-gallery";
+let adminToken = "";
+
+let requestRecords = [];
+
+let helperRecords = [];
+
+let foodOfferRecords = [];
+
+let artistRecords = [];
+let artistPreviewURLs = [];
+let galleryRecords = [];
+
+let supportRecords = [];
+
+let matchRecords = [];
+
+
+/*
+ * Recipient tracking token.
+ *
+ * MEMORY ONLY.
+ *
+ * Never place this value in:
+ * localStorage
+ * sessionStorage
+ * cookies
+ * URL parameters
+ */
+
+let issuedTrackingToken = "";
+
+
+/* ==========================================
+   ELEMENTS
+========================================== */
+
+const loginCard =
+  document.getElementById("loginCard");
+
+const dashboard =
+  document.getElementById("adminDashboard");
+
+const tokenInput =
+  document.getElementById("adminToken");
+
+const loginButton =
+  document.getElementById("loginButton");
+
+const refreshButton =
+  document.getElementById("refreshButton");
+
+const logoutButton =
+  document.getElementById("logoutButton");
+
+const requestList =
+  document.getElementById("requestList");
+
+const helperList =
+  document.getElementById("helperList");
+
+const foodOfferList =
+  document.getElementById("foodOfferList");
+
+const artistList =
+  document.getElementById("artistList");
+
+const matchList =
+  document.getElementById("matchList");
+
+const pendingRequestCount =
+  document.getElementById("pendingRequestCount");
+
+const registeredHelperCount =
+  document.getElementById("registeredHelperCount");
+
+const pendingMatchCount =
+  document.getElementById("pendingMatchCount");
+
+const messageBox =
+  document.getElementById("messageBox");
+
+const saveRouteButton =
+  document.getElementById("saveRouteButton");
+
+const clearRouteButton =
+  document.getElementById("clearRouteButton");
+
+const routeResult =
+  document.getElementById("routeResult");
+
+const issueTrackingButton =
+  document.getElementById("issueTrackingButton");
+
+const clearTrackingButton =
+  document.getElementById("clearTrackingButton");
+
+const trackingMissionId =
+  document.getElementById("trackingMissionId");
+
+const trackingAccessResult =
+  document.getElementById("trackingAccessResult");
+
+const trackingResultMission =
+  document.getElementById("trackingResultMission");
+
+const trackingResultStatus =
+  document.getElementById("trackingResultStatus");
+
+const trackingResultExpires =
+  document.getElementById("trackingResultExpires");
+
+const trackingCodeDisplay =
+  document.getElementById("trackingCodeDisplay");
+
+const copyTrackingCodeButton =
+  document.getElementById("copyTrackingCodeButton");
+
+const copyTrackingPageButton =
+  document.getElementById("copyTrackingPageButton");
+
+const hideTrackingCodeButton =
+  document.getElementById("hideTrackingCodeButton");
+
+
+/* ==========================================
+   SAFETY
+========================================== */
+
+function escapeHTML(value){
+
+  return String(value ?? "")
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#039;");
+
+}
+
+
+function safeId(value){
+
+  return String(value ?? "")
+    .replace(
+      /[^A-Za-z0-9_-]/g,
+      ""
+    );
+
+}
+
+
+/* ==========================================
+   MESSAGES
+========================================== */
+
+function showMessage(
+  text,
+  type = "success"
+){
+
+  messageBox.textContent =
+    text;
+
+  messageBox.className =
+    "message " + type;
+
+
+  clearTimeout(
+    showMessage.timer
+  );
+
+
+  showMessage.timer =
+    setTimeout(
+      () => {
+
+        messageBox.className =
+          "message";
+
+      },
+      4500
+    );
+
+}
+
+
+/* ==========================================
+   ADMIN API
+========================================== */
+
+async function adminFetch(
+  url,
+  options = {}
+){
+
+  if(!adminToken){
+
+    throw new Error(
+      "HUGS Admin is locked."
+    );
+
+  }
+
+
+  const requestHeaders = {
+
+    ...(options.headers || {}),
+
+    Authorization:
+      "Bearer " + adminToken
+
+  };
+
+
+  if(options.body){
+
+    requestHeaders[
+      "Content-Type"
+    ] =
+      "application/json";
+
+  }
+
+
+  const response =
+    await fetch(
+      url,
+      {
+        ...options,
+        headers:requestHeaders
+      }
+    );
+
+
+  let result;
+
+
+  try{
+
+    result =
+      await response.json();
+
+  }
+  catch{
+
+    throw new Error(
+      "The HUGS Admin service returned an invalid response."
+    );
+
+  }
+
+
+  if(
+    !response.ok ||
+    result.ok !== true
+  ){
+
+    if(
+      response.status === 401
+    ){
+
+      lockAdmin();
+
+    }
+
+
+    throw new Error(
+      result.error ||
+      "Admin request failed."
+    );
+
+  }
+
+
+  return result;
+
+}
+
+
+/* ==========================================
+   LOGIN
+========================================== */
+
+loginButton.addEventListener(
+  "click",
+  async () => {
+
+    const entered =
+      tokenInput.value.trim();
+
+
+    if(!entered){
+
+      showMessage(
+        "Enter the HUGS Admin Token.",
+        "error"
+      );
+
+      return;
+
+    }
+
+
+    adminToken =
+      entered;
+
+
+    loginButton.disabled =
+      true;
+
+    loginButton.textContent =
+      "Opening...";
+
+
+    try{
+
+      await loadRequests();
+
+      await loadHelpers();
+
+      await loadFoodOffers();
+
+      await loadArtists();
+       await loadGallery();
+       await loadContestAdmin();
+
+      await loadMatches();
+
+
+      loginCard.style.display =
+        "none";
+
+      dashboard.style.display =
+        "block";
+
+
+      tokenInput.value =
+        "";
+
+
+      updateCounts();
+
+
+      showMessage(
+        "HUGS Admin opened."
+      );
+
+    }
+    catch(error){
+
+      adminToken =
+        "";
+
+      showMessage(
+        error.message,
+        "error"
+      );
+
+    }
+    finally{
+
+      loginButton.disabled =
+        false;
+
+      loginButton.textContent =
+        "Open HUGS Admin";
+
+    }
+
+  }
+);
+
+
+tokenInput.addEventListener(
+  "keydown",
+  event => {
+
+    if(
+      event.key === "Enter"
+    ){
+
+      loginButton.click();
+
+    }
+
+  }
+);
+
+
+/* ==========================================
+   LOCK
+========================================== */
+
+function lockAdmin(){
+
+  adminToken = "";
+
+  requestRecords = [];
+
+  helperRecords = [];
+
+  foodOfferRecords = [];
+
+  artistRecords = [];
+
+  artistPreviewURLs.forEach(url => URL.revokeObjectURL(url));
+  artistPreviewURLs = [];
+
+  matchRecords = [];
+
+  issuedTrackingToken = "";
+
+
+  requestList.innerHTML = "";
+
+  helperList.innerHTML = "";
+
+  if(foodOfferList){ foodOfferList.innerHTML = ""; }
+
+  if(artistList){ artistList.innerHTML = ""; }
+
+  if(supportList){ supportList.innerHTML = ""; }
+
+  matchList.innerHTML = "";
+
+
+  clearRouteForm();
+
+  clearIssuedTrackingToken();
+
+
+  if(trackingMissionId){
+
+    trackingMissionId.value =
+      "";
+
+  }
+
+
+  dashboard.style.display =
+    "none";
+
+  loginCard.style.display =
+    "block";
+
+
+  tokenInput.value =
+    "";
+
+}
+
+
+logoutButton.addEventListener(
+  "click",
+  () => {
+
+    lockAdmin();
+
+    showMessage(
+      "HUGS Admin locked."
+    );
+
+  }
+);
+
+
+/* ==========================================
+   LOAD DATA
+========================================== */
+
+async function loadRequests(){
+
+  requestList.innerHTML =
+    '<div class="loading">Loading HUG Requests...</div>';
+
+
+  const result =
+    await adminFetch(
+      API + "?view=requests"
+    );
+
+
+  requestRecords =
+    Array.isArray(result.requests)
+      ? result.requests
+      : [];
+
+
+  renderRequests();
+
+  updateCounts();
+
+}
+
+
+async function loadSupport(){
+ if(!supportList)return;
+ supportList.innerHTML='<div class="loading">Loading support requests...</div>';
+ const result=await adminFetch(SUPPORT_API);supportRecords=Array.isArray(result.threads)?result.threads:[];renderSupport();
+}
+function renderSupport(){
+ if(!supportList)return;if(!supportRecords.length){supportList.innerHTML='<article class="record-card"><h3>No Support Requests</h3><p>New HUGS Live Help messages will appear here.</p></article>';return}
+ supportList.innerHTML=supportRecords.map(x=>{const id=safeId(x.id);return `<article class="record-card"><div class="record-top"><div><div class="record-id">${escapeHTML(x.id)}</div><h3>${escapeHTML(x.category||"Support")}</h3></div><span class="status-badge">${escapeHTML(x.status||"New")}</span></div><div class="record-details"><div class="detail"><strong>Name</strong>${escapeHTML(x.name||"")}</div><div class="detail"><strong>Email</strong>${escapeHTML(x.email||"")}</div><div class="detail"><strong>Reference</strong>${escapeHTML(x.reference||"None")}</div><div class="detail"><strong>Page</strong>${escapeHTML(x.page||"")}</div></div><div class="private-box"><div class="privacy-warning">PRIVATE SUPPORT MESSAGE</div>${escapeHTML(x.message||"")}</div><div class="mission-builder"><label>Private Admin Note</label><textarea id="support-note-${id}">${escapeHTML(x.admin_note||"")}</textarea><div class="record-actions"><button class="approve-button" onclick="supportAction('Open','${id}')">Open</button><button class="hold-button" onclick="supportAction('Waiting on Customer','${id}')">Waiting on Customer</button><button class="approve-button" onclick="supportAction('Resolved','${id}')">Resolved</button></div></div></article>`}).join("");
+}
+async function supportAction(status,id){const note=document.getElementById("support-note-"+id)?.value||"";try{await adminFetch(SUPPORT_API,{method:"POST",body:JSON.stringify({support_id:id,status,admin_note:note})});showMessage("Support request updated.");await loadSupport()}catch(e){showMessage(e.message,"error")}}
+async function loadArtists(){
+ if(!artistList)return;
+ artistList.innerHTML='<div class="loading">Loading artist submissions...</div>';
+ const result=await adminFetch(ARTIST_API);
+ artistRecords=Array.isArray(result.artists)?result.artists:[];
+ renderArtists();
+}
+function renderArtists(){
+ if(!artistList)return;
+ if(!artistRecords.length){artistList.innerHTML='<article class="record-card"><h3>No Artist Submissions Yet</h3><p>New HUGSLinks artist introductions will appear here.</p></article>';return}
+ artistPreviewURLs.forEach(url=>URL.revokeObjectURL(url));artistPreviewURLs=[];
+ artistList.innerHTML=artistRecords.map(artistCard).join("");
+ loadArtistPreviews();
+}
+function artistImageId(a){const id=String(a.artwork_image_id||"");return /^[a-f0-9-]{36}$/.test(id)?id:""}
+function artistCard(a){
+ const id=safeId(a.id),status=a.status||"Pending Review",links=(a.artwork_links||""),imageId=artistImageId(a),title=a.artwork_title||"Untitled Artwork";
+ return `<article class="record-card"><div class="record-top"><div><div class="record-id">${escapeHTML(a.id)}</div><h3>${escapeHTML(a.artist_name||a.full_name||"Artist")}</h3></div><span class="status-badge">${escapeHTML(status)}</span></div>
+ <div class="record-details"><div class="detail"><strong>Name</strong>${escapeHTML(a.full_name||"")}</div><div class="detail"><strong>Email</strong>${escapeHTML(a.email||"")}</div><div class="detail"><strong>Location</strong>${escapeHTML([a.city,a.region].filter(Boolean).join(", "))}</div><div class="detail"><strong>Medium</strong>${escapeHTML(a.primary_medium||"")}</div><div class="detail"><strong>Experience</strong>${escapeHTML(a.experience_level||"")}</div><div class="detail"><strong>Interests</strong>${escapeHTML(Array.isArray(a.interests)?a.interests.join(", "):"")}</div></div>
+ <div class="private-box"><div class="privacy-warning">PRIVATE ARTIST SUBMISSION</div>${imageId?`<p class="artist-image-status">Loading uploaded artwork…</p><img hidden data-artist-image-id="${imageId}" alt="${escapeHTML(title)} by ${escapeHTML(a.artist_name||a.full_name||"Artist")}" style="display:block;width:100%;max-height:420px;object-fit:contain;background:#e8eef3;border-radius:14px;margin:10px 0 16px"><strong>Uploaded artwork:</strong> ${escapeHTML(title)}${a.artwork_year?" · "+escapeHTML(a.artwork_year):""}<br><br>`:"<p>No artwork image was included with this older submission.</p>"}<strong>Artist statement:</strong><br>${escapeHTML(a.artist_statement||"")}<br><br><strong>Portfolio:</strong> ${escapeHTML(a.portfolio_url||"Not provided")}<br>${a.social_url?"<strong>Social:</strong> "+escapeHTML(a.social_url)+"<br>":""}${links?"<strong>Work links:</strong><br>"+escapeHTML(links)+"<br>":""}${a.notes?"<br><strong>Notes:</strong> "+escapeHTML(a.notes):""}</div>
+ <div class="mission-builder"><label>Private Admin Note</label><textarea id="artist-note-${id}" placeholder="Optional internal review note.">${escapeHTML(a.admin_note||"")}</textarea><div class="record-actions"><button class="approve-button" type="button" onclick="artistAction('approve-artist','${id}')">Approve Artist Only</button>${imageId?`<button class="approve-button" type="button" onclick="approveAndPublishArtist('${id}')">Approve &amp; Publish to Voting</button>`:""}<button class="hold-button" type="button" onclick="artistAction('hold-artist','${id}')">Place on Hold</button><button class="decline-button" type="button" onclick="artistAction('decline-artist','${id}')">Decline</button></div></div></article>`;
+}
+async function loadArtistPreviews(){
+ const images=[...artistList.querySelectorAll("img[data-artist-image-id]")];
+ await Promise.all(images.map(async image=>{try{const response=await fetch("/.netlify/functions/admin-preview-art-image?id="+encodeURIComponent(image.dataset.artistImageId),{headers:{Authorization:"Bearer "+adminToken},cache:"no-store"});if(!response.ok)throw Error("Preview unavailable");const url=URL.createObjectURL(await response.blob());artistPreviewURLs.push(url);image.src=url;image.hidden=false;image.previousElementSibling?.remove()}catch{const status=image.previousElementSibling;if(status)status.textContent="Artwork preview is temporarily unavailable."}}));
+}
+async function approveAndPublishArtist(id){
+ const artist=artistRecords.find(a=>safeId(a.id)===id),imageId=artist&&artistImageId(artist);
+ if(!artist||!imageId){showMessage("No uploaded artwork was found for this submission.","error");return}
+ const title=artist.artwork_title||"Untitled Artwork",name=artist.artist_name||artist.full_name||"HUGSLinks Artist";
+ if(!confirm(`Approve ${name} and publish ${title} directly to the public HUGS Art Voting Gallery?`))return;
+ const note=document.getElementById("artist-note-"+id)?.value||"";
+ try{
+  const result=await adminFetch(ARTIST_API,{method:"POST",body:JSON.stringify({action:"approve-publish",artist_id:id,admin_note:note})});
+  showMessage(result.message||"Artist approved and artwork published to voting.");
+  await Promise.all([loadArtists(),loadGallery()]);
+ }catch(error){showMessage(error.message,"error")}
+}
+async function artistAction(action,id){
+ const note=document.getElementById("artist-note-"+id)?.value||"";
+ if(!confirm("Update this artist submission?"))return;
+ try{await adminFetch(ARTIST_API,{method:"POST",body:JSON.stringify({action,artist_id:id,admin_note:note})});showMessage("Artist submission updated.");await loadArtists()}catch(error){showMessage(error.message,"error")}
+}
+
+async function loadFoodOffers(){
+  if(!foodOfferList){ return; }
+  foodOfferList.innerHTML='<div class="loading">Loading food partner offers...</div>';
+  const result=await adminFetch(FOOD_API);
+  foodOfferRecords=Array.isArray(result.offers)?result.offers:[];
+  renderFoodOffers();
+}
+
+function renderFoodOffers(){
+  if(!foodOfferList){ return; }
+  if(foodOfferRecords.length===0){
+    foodOfferList.innerHTML='<article class="record-card"><h3>No Food Partner Offers Yet</h3><p>New restaurant and food-service donation offers will appear here.</p></article>';
+    return;
+  }
+  foodOfferList.innerHTML=foodOfferRecords.map(foodOfferCard).join("");
+}
+
+function foodOfferCard(offer){
+  const id=safeId(offer.id), status=offer.status||"Pending Review";
+  const attrs=Array.isArray(offer.attributes)?offer.attributes.join(", "):"";
+  const pending=status==="Pending Review";
+  return `
+  <article class="record-card">
+    <div class="record-top"><div><div class="record-id">${escapeHTML(offer.id)}</div><h3>${escapeHTML(offer.business_name||"Food Partner")}</h3></div><span class="status-badge">${escapeHTML(status)}</span></div>
+    <div class="record-details">
+      <div class="detail"><strong>Contact</strong>${escapeHTML(offer.contact_name||"")}</div>
+      <div class="detail"><strong>Email</strong>${escapeHTML(offer.email||"")}</div>
+      <div class="detail"><strong>Phone</strong>${escapeHTML(offer.phone||"")}</div>
+      <div class="detail"><strong>Pickup Area</strong>${escapeHTML(offer.borough||"")}</div>
+      <div class="detail"><strong>Offer</strong>${escapeHTML(offer.donation_type||"")}</div>
+      <div class="detail"><strong>Quantity</strong>${escapeHTML(offer.quantity||"")}</div>
+      <div class="detail"><strong>Pickup Window</strong>${escapeHTML((offer.pickup_date||"")+" "+(offer.pickup_start||"")+"–"+(offer.pickup_end||""))}</div>
+      <div class="detail"><strong>Frequency</strong>${escapeHTML(offer.frequency||"")}</div>
+    </div>
+    <div class="private-box"><div class="privacy-warning">PRIVATE FOOD PARTNER PICKUP INFORMATION</div><strong>Address:</strong> ${escapeHTML(offer.pickup_address||"")}<br><strong>Food:</strong> ${escapeHTML(offer.food_description||"")}<br>${attrs?"<strong>Handling:</strong> "+escapeHTML(attrs)+"<br>":""}${offer.handling_notes?"<strong>Notes:</strong> "+escapeHTML(offer.handling_notes):""}</div>
+    ${pending?`<div class="mission-builder"><h4>Create Safe Food Pickup Mission</h4><p>Write only the general information an approved Helper needs. Never put the exact pickup address, donor contact information, or private handling notes on the public mission board.</p>
+      <div class="field"><label>Public Area</label><input id="food-area-${id}" value="${escapeHTML(offer.borough||"")}"></div>
+      <div class="field"><label>Public Timing</label><input id="food-timing-${id}" value="${escapeHTML((offer.pickup_date||"")+" "+(offer.pickup_start||"")+"-"+(offer.pickup_end||""))}"></div>
+      <div class="field"><label>Public Mission Summary</label><textarea id="food-summary-${id}" placeholder="Example: Pick up packaged prepared meals from an approved Queens food partner for a community food-support mission."></textarea></div>
+      <div class="record-actions"><button class="approve-button" type="button" onclick="approveFoodOffer('${id}')">Approve & Create Food Mission</button><button class="hold-button" type="button" onclick="foodOfferAction('hold-offer','${id}')">Place on Hold</button><button class="decline-button" type="button" onclick="foodOfferAction('decline-offer','${id}')">Decline</button></div>
+    </div>`:(offer.mission_id?`<div class="mission-builder"><strong>Mission: ${escapeHTML(offer.mission_id)}</strong></div>`:"")}
+  </article>`;
+}
+
+async function approveFoodOffer(id){
+ const summary=document.getElementById("food-summary-"+id)?.value.trim()||"";
+ if(!summary){showMessage("Write a safe public food mission summary before approving.","error");return}
+ if(!confirm("Approve this food offer and create an available HUG Mission?")) return;
+ try{
+  const result=await adminFetch(FOOD_API,{method:"POST",body:JSON.stringify({action:"approve-offer",offer_id:id,type:"Food Partner Pickup",area:document.getElementById("food-area-"+id)?.value||"",timing:document.getElementById("food-timing-"+id)?.value||"",summary})});
+  showMessage("Food mission "+result.mission.id+" created.");
+  await loadFoodOffers();
+ }catch(error){showMessage(error.message,"error")}
+}
+
+async function foodOfferAction(action,id){
+ const label=action==="hold-offer"?"place this food offer on hold":"decline this food offer";
+ if(!confirm("Are you sure you want to "+label+"?")) return;
+ try{await adminFetch(FOOD_API,{method:"POST",body:JSON.stringify({action,offer_id:id})});showMessage("Food partner offer updated.");await loadFoodOffers()}catch(error){showMessage(error.message,"error")}
+}
+
+async function loadHelpers(){
+
+  helperList.innerHTML =
+    '<div class="loading">Loading HUGS Helpers...</div>';
+
+
+  const result =
+    await adminFetch(
+      API + "?view=helpers"
+    );
+
+
+  helperRecords =
+    Array.isArray(result.helpers)
+      ? result.helpers
+      : [];
+
+
+  renderHelpers();
+
+  updateCounts();
+
+}
+
+
+async function loadMatches(){
+
+  matchList.innerHTML =
+    '<div class="loading">Loading Helper matches...</div>';
+
+
+  const result =
+    await adminFetch(
+      API + "?view=matches"
+    );
+
+
+  matchRecords =
+    Array.isArray(result.matches)
+      ? result.matches
+      : [];
+
+
+  renderMatches();
+
+  updateCounts();
+
+}
+
+
+/* ==========================================
+   REFRESH
+========================================== */
+
+refreshButton.addEventListener(
+  "click",
+  async () => {
+
+    refreshButton.disabled =
+      true;
+
+    refreshButton.textContent =
+      "Refreshing...";
+
+
+    try{
+
+      await loadRequests();
+
+      await loadHelpers();
+
+      await loadFoodOffers();
+
+      await loadArtists();
+
+      await loadMatches();
+
+
+      showMessage(
+        "HUGS Admin refreshed."
+      );
+
+    }
+    catch(error){
+
+      showMessage(
+        error.message,
+        "error"
+      );
+
+    }
+    finally{
+
+      refreshButton.disabled =
+        false;
+
+      refreshButton.textContent =
+        "Refresh";
+
+    }
+
+  }
+);
+
+
+/* ==========================================
+   COUNTS
+========================================== */
+
+function updateCounts(){
+
+  pendingRequestCount.textContent =
+    requestRecords.filter(
+      item =>
+        (
+          item.review_status ||
+          "Pending Review"
+        ) === "Pending Review"
+    ).length;
+
+
+  registeredHelperCount.textContent =
+    helperRecords.filter(
+      item =>
+        (
+          item.status ||
+          "Registered"
+        ) === "Registered"
+    ).length;
+
+
+  pendingMatchCount.textContent =
+    matchRecords.filter(
+      item =>
+        item.status ===
+        "Pending Review"
+    ).length;
+
+}
+
+
+/* ==========================================
+   STATUS
+========================================== */
+
+function statusClass(status){
+
+  if(
+    status === "Approved"
+  ){
+    return "status-approved";
+  }
+
+  if(
+    status === "Paused" ||
+    status === "On Hold"
+  ){
+    return "status-hold";
+  }
+
+  if(
+    status === "Declined"
+  ){
+    return "status-declined";
+  }
+
+  return "status-pending";
+
+}
+
+
+/* ==========================================
+   REQUESTS
+========================================== */
+
+function renderRequests(){
+
+  if(
+    requestRecords.length === 0
+  ){
+
+    requestList.innerHTML = `
+
+      <div class="empty-state">
+
+        <h3>No HUG Requests Yet</h3>
+
+        <p>
+          New private HUG Requests will
+          appear here for review.
+        </p>
+
+      </div>
+
+    `;
+
+    return;
+
+  }
+
+
+  requestList.innerHTML =
+    requestRecords
+      .map(requestCard)
+      .join("");
+
+}
+
+
+function requestCard(request){
+
+  const id =
+    safeId(request.id);
+
+  const displayId =
+    escapeHTML(request.id);
+
+  const status =
+    request.review_status ||
+    "Pending Review";
+
+  const name =
+    [
+      request.first_name,
+      request.last_name
+    ]
+    .filter(Boolean)
+    .join(" ");
+
+
+  return `
+
+    <article class="record-card">
+
+      <div class="record-top">
+
+        <div>
+
+          <div class="record-id">
+            ${displayId}
+          </div>
+
+          <h3>
+            ${escapeHTML(
+              request.request_type ||
+              "HUG Request"
+            )}
+          </h3>
+
+        </div>
+
+        <span
+          class="status ${statusClass(status)}"
+        >
+          ${escapeHTML(status)}
+        </span>
+
+      </div>
+
+
+      <div class="record-details">
+
+        <div class="detail">
+          <strong>Requester</strong>
+          ${escapeHTML(name || "Not provided")}
+        </div>
+
+        <div class="detail">
+          <strong>Email</strong>
+          ${escapeHTML(
+            request.email ||
+            "Not provided"
+          )}
+        </div>
+
+        <div class="detail">
+          <strong>Phone</strong>
+          ${escapeHTML(
+            request.phone ||
+            "Not provided"
+          )}
+        </div>
+
+        <div class="detail">
+
+          <strong>General Area</strong>
+
+          ${escapeHTML(
+            [
+              request.borough_area,
+              request.city,
+              request.zip_code
+            ]
+            .filter(Boolean)
+            .join(", ") ||
+            "Not provided"
+          )}
+
+        </div>
+
+        <div class="detail">
+          <strong>Timing</strong>
+          ${escapeHTML(
+            request.time_needed ||
+            "Flexible"
+          )}
+        </div>
+
+        <div class="detail">
+          <strong>Submitted</strong>
+          ${formatDate(
+            request.created_at
+          )}
+        </div>
+
+      </div>
+
+
+      <div class="private-box">
+
+        <div class="privacy-warning">
+          PRIVATE REQUEST — DO NOT COPY
+          DIRECTLY TO THE PUBLIC BOARD
+        </div>
+
+        ${escapeHTML(
+          request.request_details ||
+          "No request details provided."
+        )}
+
+      </div>
+
+
+      ${
+        request.accessibility_considerations
+        ?
+        `
+
+        <div class="private-box">
+
+          <div class="privacy-warning">
+            PRIVATE ACCESSIBILITY INFORMATION
+          </div>
+
+          ${escapeHTML(
+            request.accessibility_considerations
+          )}
+
+        </div>
+
+        `
+        :
+        ""
+      }
+
+
+      ${
+        status === "Pending Review"
+        ?
+        missionBuilder(
+          request,
+          id
+        )
+        :
+        reviewedRequest(
+          request
+        )
+      }
+
+    </article>
+
+  `;
+
+}
+
+
+function missionBuilder(
+  request,
+  id
+){
+
+  return `
+
+    <div class="mission-builder">
+
+      <h4>
+        Create Safe Public HUG Mission
+      </h4>
+
+      <p>
+        Rewrite the request using only the
+        information a Helper needs. Do not
+        include names, email, phone numbers,
+        exact addresses, shelter information,
+        medical details or other identifying
+        information.
+      </p>
+
+
+      <div class="field">
+
+        <label>
+          Public Mission Type
+        </label>
+
+        <input
+          id="type-${id}"
+          value="${escapeHTML(
+            request.request_type || ""
+          )}"
+        >
+
+      </div>
+
+
+      <div class="field">
+
+        <label>
+          Public City
+        </label>
+
+        <input
+          id="city-${id}"
+          value="${escapeHTML(
+            request.city || ""
+          )}"
+        >
+
+      </div>
+
+
+      <div class="field">
+
+        <label>
+          Public General Area
+        </label>
+
+        <input
+          id="area-${id}"
+          value="${escapeHTML(
+            request.borough_area || ""
+          )}"
+          placeholder="Example: Queens"
+        >
+
+      </div>
+
+
+      <div class="field">
+
+        <label>
+          Timing
+        </label>
+
+        <input
+          id="timing-${id}"
+          value="${escapeHTML(
+            request.time_needed ||
+            "Flexible"
+          )}"
+        >
+
+      </div>
+
+
+      <div class="field">
+
+        <label>
+          Public Mission Summary
+        </label>
+
+        <textarea
+          id="summary-${id}"
+          maxlength="600"
+          placeholder="Write the sanitized public mission here."
+        ></textarea>
+
+      </div>
+
+
+      <div class="action-row">
+
+        <button
+          class="primary-button"
+          type="button"
+          onclick="approveRequest('${id}')"
+        >
+          Approve & Create Mission
+        </button>
+
+        <button
+          class="hold-button"
+          type="button"
+          onclick="holdRequest('${id}')"
+        >
+          Place on Hold
+        </button>
+
+        <button
+          class="danger-button"
+          type="button"
+          onclick="declineRequest('${id}')"
+        >
+          Decline Request
+        </button>
+
+      </div>
+
+    </div>
+
+  `;
+
+}
+
+
+function reviewedRequest(request){
+
+  return `
+
+    <div class="mission-builder">
+
+      <strong>
+        Review complete:
+      </strong>
+
+      ${escapeHTML(
+        request.review_status
+      )}
+
+      ${
+        request.mission_id
+        ?
+        `
+
+        <p>
+          Mission:
+          <strong>
+            ${escapeHTML(
+              request.mission_id
+            )}
+          </strong>
+        </p>
+
+        `
+        :
+        ""
+      }
+
+    </div>
+
+  `;
+
+}
+
+
+async function approveRequest(requestId){
+
+  const type =
+    document
+      .getElementById(
+        "type-" + requestId
+      )
+      .value
+      .trim();
+
+  const city =
+    document
+      .getElementById(
+        "city-" + requestId
+      )
+      .value
+      .trim();
+
+  const area =
+    document
+      .getElementById(
+        "area-" + requestId
+      )
+      .value
+      .trim();
+
+  const timing =
+    document
+      .getElementById(
+        "timing-" + requestId
+      )
+      .value
+      .trim();
+
+  const summary =
+    document
+      .getElementById(
+        "summary-" + requestId
+      )
+      .value
+      .trim();
+
+
+  if(!summary){
+
+    showMessage(
+      "Write a safe public Mission summary before approving.",
+      "error"
+    );
+
+    return;
+
+  }
+
+
+  if(
+    !confirm(
+      "Approve this request and create the public HUG Mission?"
+    )
+  ){
+    return;
+  }
+
+
+  try{
+
+    const result =
+      await adminFetch(
+        API,
+        {
+          method:"POST",
+
+          body:
+            JSON.stringify({
+
+              action:
+                "approve-request",
+
+              request_id:
+                requestId,
+
+              type,
+              city,
+              area,
+              timing,
+              summary
+
+            })
+        }
+      );
+
+
+    showMessage(
+      "HUG Mission " +
+      result.mission.id +
+      " created."
+    );
+
+
+    await loadRequests();
+
+  }
+  catch(error){
+
+    showMessage(
+      error.message,
+      "error"
+    );
+
+  }
+
+}
+
+
+async function holdRequest(requestId){
+
+  if(
+    !confirm(
+      "Place this HUG Request on hold?"
+    )
+  ){
+    return;
+  }
+
+
+  await requestAction(
+    "hold-request",
+    requestId,
+    "HUG Request placed on hold."
+  );
+
+}
+
+
+async function declineRequest(requestId){
+
+  if(
+    !confirm(
+      "Decline this HUG Request?"
+    )
+  ){
+    return;
+  }
+
+
+  await requestAction(
+    "decline-request",
+    requestId,
+    "HUG Request declined."
+  );
+
+}
+
+
+async function requestAction(
+  action,
+  requestId,
+  successMessage
+){
+
+  try{
+
+    await adminFetch(
+      API,
+      {
+        method:"POST",
+
+        body:
+          JSON.stringify({
+            action,
+            request_id:requestId
+          })
+      }
+    );
+
+
+    showMessage(
+      successMessage
+    );
+
+
+    await loadRequests();
+
+  }
+  catch(error){
+
+    showMessage(
+      error.message,
+      "error"
+    );
+
+  }
+
+}
+
+
+/* ==========================================
+   HELPERS
+========================================== */
+
+function renderHelpers(){
+
+  if(
+    helperRecords.length === 0
+  ){
+
+    helperList.innerHTML = `
+
+      <div class="empty-state">
+
+        <h3>No HUGS Helpers Yet</h3>
+
+        <p>
+          New Helper registrations will
+          appear here for review.
+        </p>
+
+      </div>
+
+    `;
+
+    return;
+
+  }
+
+
+  helperList.innerHTML =
+    helperRecords
+      .map(helperCard)
+      .join("");
+
+}
+
+
+function helperCard(helper){
+
+  const id =
+    safeId(helper.id);
+
+  const status =
+    helper.status ||
+    "Registered";
+
+  const name =
+    [
+      helper.first_name,
+      helper.last_name
+    ]
+    .filter(Boolean)
+    .join(" ");
+
+
+  const helpTypes =
+    Array.isArray(helper.help_types)
+      ?
+      helper.help_types
+        .map(escapeHTML)
+        .join(", ")
+      :
+      "Not provided";
+
+
+  const transportation =
+    Array.isArray(helper.transportation)
+      ?
+      helper.transportation
+        .map(escapeHTML)
+        .join(", ")
+      :
+      "Not provided";
+
+
+  return `
+
+    <article class="record-card">
+
+      <div class="record-top">
+
+        <div>
+
+          <div class="record-id">
+            ${escapeHTML(helper.id)}
+          </div>
+
+          <h3>
+            ${escapeHTML(
+              name ||
+              "HUGS Helper"
+            )}
+          </h3>
+
+        </div>
+
+        <span
+          class="status ${statusClass(status)}"
+        >
+          ${escapeHTML(status)}
+        </span>
+
+      </div>
+
+
+      <div class="record-details">
+
+        <div class="detail">
+          <strong>Email</strong>
+          ${escapeHTML(
+            helper.email ||
+            "Not provided"
+          )}
+        </div>
+
+        <div class="detail">
+          <strong>Phone</strong>
+          ${escapeHTML(
+            helper.phone ||
+            "Not provided"
+          )}
+        </div>
+
+        <div class="detail">
+
+          <strong>Service Area</strong>
+
+          ${escapeHTML(
+            [
+              helper.borough_area,
+              helper.city,
+              helper.zip_code
+            ]
+            .filter(Boolean)
+            .join(", ") ||
+            "Not provided"
+          )}
+
+        </div>
+
+        <div class="detail">
+          <strong>Travel Range</strong>
+          ${escapeHTML(
+            helper.travel_range ||
+            "Not provided"
+          )}
+        </div>
+
+        <div class="detail">
+          <strong>Availability</strong>
+          ${escapeHTML(
+            helper.availability ||
+            "Not provided"
+          )}
+        </div>
+
+        <div class="detail">
+          <strong>Registered</strong>
+          ${formatDate(
+            helper.created_at
+          )}
+        </div>
+
+      </div>
+
+
+      <div class="private-box">
+
+        <div class="privacy-warning">
+          PRIVATE HELPER INFORMATION
+        </div>
+
+        <strong>
+          Can Help With:
+        </strong>
+
+        ${helpTypes}
+
+        <br><br>
+
+        <strong>
+          Transportation:
+        </strong>
+
+        ${transportation}
+
+        <br><br>
+
+        <strong>
+          Carrying Capacity:
+        </strong>
+
+        ${escapeHTML(
+          helper.carrying_capacity ||
+          "Not provided"
+        )}
+
+        <br><br>
+
+        <strong>
+          Skills / Experience:
+        </strong>
+
+        ${escapeHTML(
+          helper.skills_experience ||
+          "Not provided"
+        )}
+
+      </div>
+
+
+      ${helperActions(
+        helper,
+        id
+      )}
+
+    </article>
+
+  `;
+
+}
+
+
+function helperActions(
+  helper,
+  id
+){
+
+  if(
+    helper.status === "Registered"
+  ){
+
+    return `
+
+      <div class="action-row">
+
+        <button
+          class="primary-button"
+          type="button"
+          onclick="approveHelper('${id}')"
+        >
+          Approve Helper
+        </button>
+
+        <button
+          class="hold-button"
+          type="button"
+          onclick="pauseHelper('${id}')"
+        >
+          Pause
+        </button>
+
+      </div>
+
+    `;
+
+  }
+
+
+  if(
+    helper.status === "Approved"
+  ){
+
+    return `
+
+      <div class="action-row">
+
+        <button
+          class="hold-button"
+          type="button"
+          onclick="pauseHelper('${id}')"
+        >
+          Pause Helper
+        </button>
+
+      </div>
+
+    `;
+
+  }
+
+
+  if(
+    helper.status === "Paused"
+  ){
+
+    return `
+
+      <div class="action-row">
+
+        <button
+          class="primary-button"
+          type="button"
+          onclick="reactivateHelper('${id}')"
+        >
+          Reactivate Helper
+        </button>
+
+      </div>
+
+    `;
+
+  }
+
+
+  return "";
+
+}
+
+
+async function approveHelper(helperId){
+
+  if(
+    !confirm(
+      "Approve this person as a HUGS Helper?"
+    )
+  ){
+    return;
+  }
+
+
+  await helperAction(
+    "approve-helper",
+    helperId,
+    "HUGS Helper approved."
+  );
+
+}
+
+
+async function pauseHelper(helperId){
+
+  if(
+    !confirm(
+      "Pause this HUGS Helper?"
+    )
+  ){
+    return;
+  }
+
+
+  await helperAction(
+    "pause-helper",
+    helperId,
+    "HUGS Helper paused."
+  );
+
+}
+
+
+async function reactivateHelper(helperId){
+
+  if(
+    !confirm(
+      "Reactivate this HUGS Helper?"
+    )
+  ){
+    return;
+  }
+
+
+  await helperAction(
+    "reactivate-helper",
+    helperId,
+    "HUGS Helper reactivated."
+  );
+
+}
+
+
+async function helperAction(
+  action,
+  helperId,
+  successMessage
+){
+
+  try{
+
+    await adminFetch(
+      API,
+      {
+        method:"POST",
+
+        body:
+          JSON.stringify({
+            action,
+            helper_id:helperId
+          })
+      }
+    );
+
+
+    showMessage(
+      successMessage
+    );
+
+
+    await loadHelpers();
+
+  }
+  catch(error){
+
+    showMessage(
+      error.message,
+      "error"
+    );
+
+  }
+
+}
+
+
+/* ==========================================
+   MATCHES
+========================================== */
+
+function renderMatches(){
+
+  if(
+    matchRecords.length === 0
+  ){
+
+    matchList.innerHTML = `
+
+      <div class="empty-state">
+
+        <h3>
+          No Helper Match Requests
+        </h3>
+
+        <p>
+          When an approved Helper chooses
+          “I Can Help,” their request will
+          appear here.
+        </p>
+
+      </div>
+
+    `;
+
+    return;
+
+  }
+
+
+  matchList.innerHTML =
+    matchRecords
+      .map(matchCard)
+      .join("");
+
+}
+
+
+function matchCard(match){
+
+  const id =
+    safeId(match.id);
+
+  const status =
+    match.status ||
+    "Pending Review";
+
+
+  return `
+
+    <article class="record-card">
+
+      <div class="record-top">
+
+        <div>
+
+          <div class="record-id">
+            ${escapeHTML(match.id)}
+          </div>
+
+          <h3>
+            Helper Match Request
+          </h3>
+
+        </div>
+
+        <span
+          class="status ${statusClass(status)}"
+        >
+          ${escapeHTML(status)}
+        </span>
+
+      </div>
+
+
+      <div class="record-details">
+
+        <div class="detail">
+          <strong>Mission</strong>
+          ${escapeHTML(
+            match.mission_id
+          )}
+        </div>
+
+        <div class="detail">
+          <strong>Helper</strong>
+          ${escapeHTML(
+            match.helper_id
+          )}
+        </div>
+
+        <div class="detail">
+          <strong>Registered Email</strong>
+          ${escapeHTML(
+            match.helper_email
+          )}
+        </div>
+
+        <div class="detail">
+          <strong>Requested</strong>
+          ${formatDate(
+            match.created_at
+          )}
+        </div>
+
+      </div>
+
+
+      ${
+        status === "Pending Review"
+        ?
+        `
+
+        <div class="action-row">
+
+          <button
+            class="primary-button"
+            type="button"
+            onclick="approveMatch('${id}')"
+          >
+            Approve Helper for Mission
+          </button>
+
+          <button
+            class="danger-button"
+            type="button"
+            onclick="declineMatch('${id}')"
+          >
+            Decline Match
+          </button>
+
+        </div>
+
+        `
+        :
+        `
+
+        <p>
+          Match review complete:
+          <strong>
+            ${escapeHTML(status)}
+          </strong>
+        </p>
+
+        `
+      }
+
+    </article>
+
+  `;
+
+}
+
+
+function prepareAssignedMission(
+  missionId
+){
+
+  if(!missionId){
+    return;
+  }
+
+  const routeMissionId =
+    document.getElementById(
+      "routeMissionId"
+    );
+
+  if(routeMissionId){
+    routeMissionId.value =
+      missionId;
+  }
+
+  if(trackingMissionId){
+    trackingMissionId.value =
+      missionId;
+  }
+
+}
+
+
+async function approveMatch(matchId){
+
+  if(
+    !confirm(
+      "Approve this Helper for the HUG Mission?"
+    )
+  ){
+    return;
+  }
+
+
+  try{
+
+    const result =
+      await adminFetch(
+        API,
+        {
+          method:"POST",
+
+          body:
+            JSON.stringify({
+              action:"approve-match",
+              match_id:matchId
+            })
+        }
+      );
+
+
+    const missionId =
+      String(
+        result.mission_id || ""
+      )
+      .trim()
+      .toUpperCase();
+
+
+    prepareAssignedMission(
+      missionId
+    );
+
+
+    showMessage(
+      missionId
+        ?
+        "Helper assigned to " +
+        missionId +
+        ". The Mission number is ready in Private Route and Recipient Tracking."
+        :
+        "Helper assigned. Mission is now Accepted."
+    );
+
+
+    await loadMatches();
+
+  }
+  catch(error){
+
+    showMessage(
+      error.message,
+      "error"
+    );
+
+  }
+
+}
+
+
+async function declineMatch(matchId){
+
+  if(
+    !confirm(
+      "Decline this Helper match request?"
+    )
+  ){
+    return;
+  }
+
+
+  try{
+
+    await adminFetch(
+      API,
+      {
+        method:"POST",
+
+        body:
+          JSON.stringify({
+            action:"decline-match",
+            match_id:matchId
+          })
+      }
+    );
+
+
+    showMessage(
+      "Helper match declined."
+    );
+
+
+    await loadMatches();
+
+  }
+  catch(error){
+
+    showMessage(
+      error.message,
+      "error"
+    );
+
+  }
+
+}
+
+
+/* ==========================================
+   PRIVATE ROUTE
+========================================== */
+
+saveRouteButton.addEventListener(
+  "click",
+  savePrivateRoute
+);
+
+
+clearRouteButton.addEventListener(
+  "click",
+  clearRouteForm
+);
+
+
+async function savePrivateRoute(){
+
+  const missionId =
+    document
+      .getElementById(
+        "routeMissionId"
+      )
+      .value
+      .trim()
+      .toUpperCase();
+
+
+  const pickupLabel =
+    document
+      .getElementById(
+        "pickupLabel"
+      )
+      .value
+      .trim();
+
+
+  const pickupLatitude =
+    Number(
+      document
+        .getElementById(
+          "pickupLatitude"
+        )
+        .value
+    );
+
+
+  const pickupLongitude =
+    Number(
+      document
+        .getElementById(
+          "pickupLongitude"
+        )
+        .value
+    );
+
+
+  const destinationLabel =
+    document
+      .getElementById(
+        "destinationLabel"
+      )
+      .value
+      .trim();
+
+
+  const destinationLatitude =
+    Number(
+      document
+        .getElementById(
+          "destinationLatitude"
+        )
+        .value
+    );
+
+
+  const destinationLongitude =
+    Number(
+      document
+        .getElementById(
+          "destinationLongitude"
+        )
+        .value
+    );
+
+
+  if(!missionId){
+
+    showMessage(
+      "Enter the assigned HUG Mission number.",
+      "error"
+    );
+
+    return;
+
+  }
+
+
+  if(
+    !pickupLabel ||
+    !destinationLabel
+  ){
+
+    showMessage(
+      "Enter both the pickup and destination labels.",
+      "error"
+    );
+
+    return;
+
+  }
+
+
+  if(
+    !validLatitude(
+      pickupLatitude
+    ) ||
+    !validLongitude(
+      pickupLongitude
+    ) ||
+    !validLatitude(
+      destinationLatitude
+    ) ||
+    !validLongitude(
+      destinationLongitude
+    )
+  ){
+
+    showMessage(
+      "Enter valid pickup and destination coordinates.",
+      "error"
+    );
+
+    return;
+
+  }
+
+
+  if(
+    !confirm(
+      "Save this private pickup and destination for " +
+      missionId +
+      "?"
+    )
+  ){
+    return;
+  }
+
+
+  saveRouteButton.disabled =
+    true;
+
+  saveRouteButton.textContent =
+    "Saving Private Route...";
+
+
+  try{
+
+    const result =
+      await adminFetch(
+        ROUTE_API,
+        {
+
+          method:"POST",
+
+          body:
+            JSON.stringify({
+
+              mission_id:
+                missionId,
+
+              pickup_label:
+                pickupLabel,
+
+              pickup_latitude:
+                pickupLatitude,
+
+              pickup_longitude:
+                pickupLongitude,
+
+              destination_label:
+                destinationLabel,
+
+              destination_latitude:
+                destinationLatitude,
+
+              destination_longitude:
+                destinationLongitude
+
+            })
+
+        }
+      );
+
+
+    routeResult.style.display =
+      "block";
+
+
+    routeResult.innerHTML =
+
+      "✓ Private route saved for <strong>" +
+      escapeHTML(
+        result.mission_id ||
+        missionId
+      ) +
+      "</strong>.<br><br>" +
+
+      "The Helper receives the pickup first. " +
+      "The destination remains protected until " +
+      "the mission reaches <strong>Items Received</strong>.";
+
+
+    showMessage(
+      "Private HUG route saved."
+    );
+
+
+  }
+  catch(error){
+
+    routeResult.style.display =
+      "none";
+
+
+    showMessage(
+      error.message,
+      "error"
+    );
+
+  }
+  finally{
+
+    saveRouteButton.disabled =
+      false;
+
+    saveRouteButton.textContent =
+      "Save Private Route";
+
+  }
+
+}
+
+
+function validLatitude(value){
+
+  return (
+    Number.isFinite(value) &&
+    value >= -90 &&
+    value <= 90
+  );
+
+}
+
+
+function validLongitude(value){
+
+  return (
+    Number.isFinite(value) &&
+    value >= -180 &&
+    value <= 180
+  );
+
+}
+
+
+function clearRouteForm(){
+
+  [
+    "routeMissionId",
+    "pickupLabel",
+    "pickupLatitude",
+    "pickupLongitude",
+    "destinationLabel",
+    "destinationLatitude",
+    "destinationLongitude"
+  ]
+  .forEach(
+    id => {
+
+      const field =
+        document.getElementById(id);
+
+      if(field){
+
+        field.value = "";
+
+      }
+
+    }
+  );
+
+
+  routeResult.style.display =
+    "none";
+
+  routeResult.innerHTML =
+    "";
+
+}
+
+
+/* ==========================================
+   RECIPIENT TRACKING ACCESS
+========================================== */
+
+issueTrackingButton.addEventListener(
+  "click",
+  issueRecipientTracking
+);
+
+
+clearTrackingButton.addEventListener(
+  "click",
+  clearTrackingAccess
+);
+
+
+copyTrackingCodeButton.addEventListener(
+  "click",
+  copyTrackingCode
+);
+
+
+copyTrackingPageButton.addEventListener(
+  "click",
+  copyTrackingPage
+);
+
+
+hideTrackingCodeButton.addEventListener(
+  "click",
+  clearIssuedTrackingToken
+);
+
+
+/* ==========================================
+   ISSUE TRACKING
+========================================== */
+
+async function issueRecipientTracking(){
+
+  const missionId =
+    trackingMissionId
+      .value
+      .trim()
+      .toUpperCase();
+
+
+  if(!missionId){
+
+    showMessage(
+      "Enter the active HUG Mission number.",
+      "error"
+    );
+
+    return;
+
+  }
+
+
+  if(
+    !/^HUG-\d{4}-[A-Za-z0-9-]{4,40}$/
+      .test(missionId)
+  ){
+
+    showMessage(
+      "Enter a valid HUG Mission number.",
+      "error"
+    );
+
+    return;
+
+  }
+
+
+  clearIssuedTrackingToken();
+
+
+  if(
+    !confirm(
+      "Issue new private recipient tracking access for " +
+      missionId +
+      "? Any previously issued tracking code for the active session will stop working."
+    )
+  ){
+    return;
+  }
+
+
+  issueTrackingButton.disabled =
+    true;
+
+  issueTrackingButton.textContent =
+    "Issuing Private Access...";
+
+
+  try{
+
+    const result =
+      await adminFetch(
+        TRACKING_ACCESS_API,
+        {
+
+          method:"POST",
+
+          body:
+            JSON.stringify({
+
+              mission_id:
+                missionId
+
+            })
+
+        }
+      );
+
+
+    if(
+      typeof result.tracking_token !==
+        "string" ||
+      !result.tracking_token
+    ){
+
+      throw new Error(
+        "HUGS did not return a recipient tracking credential."
+      );
+
+    }
+
+
+    issuedTrackingToken =
+      result.tracking_token;
+
+
+    trackingCodeDisplay.value =
+      issuedTrackingToken;
+
+
+    trackingResultMission.textContent =
+      result.mission_id ||
+      missionId;
+
+
+    trackingResultStatus.textContent =
+      result.mission_status ||
+      "Active";
+
+
+    trackingResultExpires.textContent =
+      formatPrivateDate(
+        result.expires_at
+      );
+
+
+    trackingAccessResult.style.display =
+      "block";
+
+
+    showMessage(
+      "Private recipient tracking access issued."
+    );
+
+
+  }
+  catch(error){
+
+    clearIssuedTrackingToken();
+
+
+    showMessage(
+      error.message,
+      "error"
+    );
+
+  }
+  finally{
+
+    issueTrackingButton.disabled =
+      false;
+
+    issueTrackingButton.textContent =
+      "Issue Recipient Tracking Access";
+
+  }
+
+}
+
+
+/* ==========================================
+   COPY TRACKING CODE
+========================================== */
+
+async function copyTrackingCode(){
+
+  if(!issuedTrackingToken){
+
+    showMessage(
+      "There is no active tracking code to copy.",
+      "error"
+    );
+
+    return;
+
+  }
+
+
+  try{
+
+    await copyPrivateText(
+      issuedTrackingToken
+    );
+
+
+    showMessage(
+      "Recipient tracking code copied."
+    );
+
+  }
+  catch{
+
+    showMessage(
+      "The tracking code could not be copied automatically. Select and copy it manually.",
+      "error"
+    );
+
+  }
+
+}
+
+
+/* ==========================================
+   COPY TRACKING PAGE
+========================================== */
+
+async function copyTrackingPage(){
+
+  const trackingPage =
+    new URL(
+      "hug-tracking.html",
+      window.location.href
+    )
+    .href;
+
+
+  try{
+
+    await copyPrivateText(
+      trackingPage
+    );
+
+
+    showMessage(
+      "Recipient tracking page address copied."
+    );
+
+  }
+  catch{
+
+    showMessage(
+      "The tracking page address could not be copied automatically.",
+      "error"
+    );
+
+  }
+
+}
+
+
+/* ==========================================
+   PRIVATE COPY
+========================================== */
+
+async function copyPrivateText(text){
+
+  if(
+    navigator.clipboard &&
+    window.isSecureContext
+  ){
+
+    await navigator.clipboard
+      .writeText(text);
+
+    return;
+
+  }
+
+
+  const temporary =
+    document.createElement(
+      "textarea"
+    );
+
+
+  temporary.value =
+    text;
+
+
+  temporary.setAttribute(
+    "readonly",
+    ""
+  );
+
+
+  temporary.style.position =
+    "fixed";
+
+  temporary.style.opacity =
+    "0";
+
+  temporary.style.pointerEvents =
+    "none";
+
+
+  document.body.appendChild(
+    temporary
+  );
+
+
+  temporary.select();
+
+
+  temporary.setSelectionRange(
+    0,
+    temporary.value.length
+  );
+
+
+  const copied =
+    document.execCommand(
+      "copy"
+    );
+
+
+  temporary.remove();
+
+
+  if(!copied){
+
+    throw new Error(
+      "Copy failed."
+    );
+
+  }
+
+}
+
+
+/* ==========================================
+   CLEAR DISPLAYED TRACKING TOKEN
+========================================== */
+
+function clearIssuedTrackingToken(){
+
+  issuedTrackingToken =
+    "";
+
+
+  if(trackingCodeDisplay){
+
+    trackingCodeDisplay.value =
+      "";
+
+  }
+
+
+  if(trackingAccessResult){
+
+    trackingAccessResult.style.display =
+      "none";
+
+  }
+
+
+  if(trackingResultMission){
+
+    trackingResultMission.textContent =
+      "—";
+
+  }
+
+
+  if(trackingResultStatus){
+
+    trackingResultStatus.textContent =
+      "—";
+
+  }
+
+
+  if(trackingResultExpires){
+
+    trackingResultExpires.textContent =
+      "—";
+
+  }
+
+}
+
+
+/* ==========================================
+   CLEAR TRACKING CONTROL
+========================================== */
+
+function clearTrackingAccess(){
+
+  clearIssuedTrackingToken();
+
+
+  if(trackingMissionId){
+
+    trackingMissionId.value =
+      "";
+
+  }
+
+
+  showMessage(
+    "Recipient tracking control cleared."
+  );
+
+}
+
+
+/* ==========================================
+   PRIVATE DATE
+========================================== */
+
+function formatPrivateDate(value){
+
+  if(!value){
+    return "Unknown";
+  }
+
+
+  const date =
+    new Date(value);
+
+
+  if(
+    Number.isNaN(
+      date.getTime()
+    )
+  ){
+    return "Unknown";
+  }
+
+
+  return date.toLocaleString();
+
+}
+
+
+/* ==========================================
+   DATE
+========================================== */
+
+function formatDate(value){
+
+  if(!value){
+    return "Unknown";
+  }
+
+
+  const date =
+    new Date(value);
+
+
+  if(
+    Number.isNaN(
+      date.getTime()
+    )
+  ){
+    return escapeHTML(value);
+  }
+
+
+  return escapeHTML(
+    date.toLocaleString()
+  );
+
+}
+
+
+/* ==========================================
+   TABS
+========================================== */
+
+document
+  .querySelectorAll(
+    ".tab-button"
+  )
+  .forEach(
+    button => {
+
+      button.addEventListener(
+        "click",
+        () => {
+
+          document
+            .querySelectorAll(
+              ".tab-button"
+            )
+            .forEach(
+              item =>
+                item.classList.remove(
+                  "active"
+                )
+            );
+
+
+          document
+            .querySelectorAll(
+              ".admin-section"
+            )
+            .forEach(
+              section =>
+                section.classList.remove(
+                  "active"
+                )
+            );
+
+
+          button.classList.add(
+            "active"
+          );
+
+
+          const target =
+            document.getElementById(
+              button.dataset.tab +
+              "Section"
+            );
+
+
+          if(target){
+
+            target.classList.add(
+              "active"
+            );
+
+          }
+
+        }
+      );
+
+    }
+  );
+
+
+/* ==========================================
+   PAGE EXIT
+========================================== */
+
+window.addEventListener(
+  "pagehide",
+  () => {
+
+    adminToken =
+      "";
+
+    issuedTrackingToken =
+      "";
+
+
+    if(trackingCodeDisplay){
+
+      trackingCodeDisplay.value =
+        "";
+
+    }
+
+  }
+);
+
+
+const g=id=>document.getElementById(id);
+if(g('galleryCollection')&&!Array.from(g('galleryCollection').options).some(o=>o.value==='Community Gallery')){g('galleryCollection').prepend(new Option('Community Gallery','Community Gallery'))}
+let galleryPreviewURL=null;
+g('galleryUpload')?.addEventListener('change',()=>{
+ const f=g('galleryUpload').files?.[0];if(galleryPreviewURL)URL.revokeObjectURL(galleryPreviewURL);
+ g('galleryPreview').style.display='none';g('galleryUploadStatus').textContent='';
+ if(!f)return;
+ if(!['image/jpeg','image/png','image/webp'].includes(f.type)||f.size>8*1024*1024){g('galleryUploadStatus').textContent='Choose JPEG, PNG or WebP up to 8 MB.';g('galleryUpload').value='';return}
+ galleryPreviewURL=URL.createObjectURL(f);g('galleryPreview').src=galleryPreviewURL;g('galleryPreview').style.display='block';
+});
+g('galleryUploadButton')?.addEventListener('click',async()=>{
+ const f=g('galleryUpload').files?.[0];if(!f){g('galleryUploadStatus').textContent='Select an image first.';return}
+ const btn=g('galleryUploadButton');btn.disabled=true;g('galleryUploadStatus').textContent='Uploading…';
+ try{const fd=new FormData();fd.append('artwork',f);const response=await fetch('/.netlify/functions/upload-art-image',{method:'POST',headers:{Authorization:'Bearer '+adminToken},body:fd,cache:'no-store'});const d=await response.json();if(!response.ok||!d.ok)throw Error(d.error||'Upload failed');g('galleryImage').value=d.image_url;g('galleryUploadStatus').textContent='Uploaded. Click Save / Replace Artwork to publish.';g('galleryUpload').value=''}catch(e){g('galleryUploadStatus').textContent=e.message}finally{btn.disabled=false}
+});
+function galleryReset(){for(const id of ['galleryId','galleryTitle','galleryArtist','galleryImage','galleryMedium','galleryDescription'])g(id).value='';g('galleryPublished').checked=true;g('galleryUpload').value='';g('galleryPreview').style.display='none';g('galleryUploadStatus').textContent=''}
+g('galleryNew')?.addEventListener('click',galleryReset);
+async function loadGallery(){const el=g('galleryList');if(!el)return;try{const d=await adminFetch(GALLERY_API);galleryRecords=d.works||[];el.replaceChildren();if(!galleryRecords.length){el.textContent='No managed artwork yet.';return}for(const w of galleryRecords){const card=document.createElement('article'),h=document.createElement('h3'),p=document.createElement('p'),btn=document.createElement('button');card.className='record-card';h.textContent=w.title+' — '+w.artist_name;p.textContent=w.collection+(w.published?' · Published':' · Draft');btn.className='secondary-button';btn.textContent='Edit / Replace';btn.onclick=()=>{g('galleryId').value=w.id;g('galleryTitle').value=w.title;g('galleryArtist').value=w.artist_name;g('galleryImage').value=w.image_url;g('galleryMedium').value=w.medium||'';g('galleryDescription').value=w.description||'';g('galleryCollection').value=w.collection;g('galleryPublished').checked=!!w.published;g('galleryUploadStatus').textContent='Choose a new image to replace this artwork, or edit the details.';g('galleryPreview').style.display='none';};card.append(h,p,btn);el.append(card)}}catch(e){el.textContent=e.message}}
+g('gallerySave')?.addEventListener('click',async()=>{const btn=g('gallerySave');btn.disabled=true;try{await adminFetch(GALLERY_API,{method:'POST',body:JSON.stringify({action:'save',id:g('galleryId').value,title:g('galleryTitle').value,artist_name:g('galleryArtist').value,collection:g('galleryCollection').value,image_url:g('galleryImage').value,medium:g('galleryMedium').value,description:g('galleryDescription').value,published:g('galleryPublished').checked})});showMessage('Artwork saved.');galleryReset();await loadGallery()}catch(e){showMessage(e.message,'error')}finally{btn.disabled=false}});
+
+const contestAPI='/.netlify/functions/admin-art-contest';let currentContest=null;
+async function contestAction(action,extra={}){const s=document.getElementById('contestAdminStatus');try{const d=await adminFetch(contestAPI,{method:'POST',body:JSON.stringify({action,...extra})});s.textContent='Saved: '+d.contest.status;await loadContestAdmin()}catch(e){s.textContent=e.message}}
+async function loadContestAdmin(){const s=document.getElementById('contestAdminStatus'),box=document.getElementById('contestAdminEntries');try{const [d,g]=await Promise.all([adminFetch(contestAPI),adminFetch(GALLERY_API)]);currentContest=d.contest;box.replaceChildren();s.textContent=currentContest?currentContest.title+' · '+currentContest.status+' · '+currentContest.entries.length+'/'+currentContest.max_entries+' entries':'No competition created.';for(const w of g.works.filter(w=>w.published)){const label=document.createElement('label');label.style.display='block';label.style.padding='8px';const input=document.createElement('input');input.type='checkbox';input.value=w.id;input.checked=!!currentContest?.entries.includes(w.id);input.disabled=currentContest?.status!=='draft';label.append(input,document.createTextNode(' '+w.title+' — '+w.artist_name));box.append(label)}}catch(e){s.textContent=e.message}}
+document.getElementById('contestHealth')?.addEventListener('click',async()=>{const el=document.getElementById('contestHealthStatus');el.textContent='Checking private voting setup…';try{const d=await adminFetch('/.netlify/functions/admin-art-voting-health');el.textContent=Object.entries(d.checks).map(([key,ready])=>key.replaceAll('_',' ')+': '+(ready?'Ready':'Needs setup')).join(' | ')}catch(e){el.textContent=e.message}});
+document.getElementById('contestCreate')?.addEventListener('click',()=>contestAction('create',{title:document.getElementById('contestName').value,max_entries:Number(document.getElementById('contestLimit').value)}));
+document.getElementById('contestSet')?.addEventListener('click',()=>contestAction('set_entries',{entries:[...document.querySelectorAll('#contestAdminEntries input:checked')].map(x=>x.value)}));
+document.getElementById('contestOpen')?.addEventListener('click',()=>contestAction('open'));
+document.getElementById('contestClose')?.addEventListener('click',()=>contestAction('close'));
+document.getElementById('contestPublish')?.addEventListener('click',()=>contestAction('publish_winners'));
+</script>
+
+</body>
+</html>
