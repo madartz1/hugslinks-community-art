@@ -1,0 +1,170 @@
+/* Keep the public HUGSLinks navigation consistent across legacy and newer pages. */
+const HUGS_PUBLIC_NAV=[
+ ['index.html','Home'],['shop.html','Shop'],['hugs-cards.html','HUGS Cards'],['art-community.html','Art'],
+ ['food-support.html','Food'],['housing-help.html','Housing'],['business-services.html','Business'],
+ ['reviews.html','HUGS Reviews'],['help-app.html','Help App'],['help-center.html','Help Center'],
+ ['resources.html','Resources'],['nyc-updates.html','NYC Updates'],['about.html','About'],['contact.html','Contact']
+];
+// Homepage navigation is fully authored in index.html. Do not append another menu.
+// Legacy pages may still need missing links added.
+if (!document.body.classList.contains('hugs-home-nav-static')) {
+ document.querySelectorAll('.navlinks').forEach(nav=>{
+  const existing=new Set([...nav.querySelectorAll('a')].map(a=>new URL(a.href).pathname));
+  HUGS_PUBLIC_NAV.forEach(([href,label])=>{
+   const pathname=new URL(href,location.href).pathname;
+   if(!existing.has(pathname)){
+    const a=document.createElement('a');a.href=href;a.textContent=label;nav.appendChild(a);existing.add(pathname);
+   }
+  });
+ });
+}
+document.querySelectorAll('.menu').forEach(btn=>btn.addEventListener('click',()=>{
+ const nav=btn.closest('.nav')?.querySelector('.navlinks')||document.querySelector('.navlinks');
+ if(nav){nav.classList.toggle('open');btn.setAttribute('aria-expanded',String(nav.classList.contains('open')));}
+}));
+const path=location.pathname.split('/').pop()||'index.html';document.querySelectorAll('.navlinks a').forEach(a=>{if(a.getAttribute('href')===path)a.classList.add('active')});
+
+/* Sitewide HUGS electric buttons and visitor-controlled sound */
+(() => {
+  const buttonSelector = [
+    '.btn',
+    '.button',
+    '.product-button',
+    '.free-btn',
+    'a.buy',
+    'button.buy',
+    'a.personalize',
+    'button.personalize',
+    '.personalize-button',
+    '.view-button'
+  ].join(',');
+
+  document.querySelectorAll(buttonSelector).forEach(button => {
+    button.classList.add('electric-interactive');
+  });
+
+  const toggle = document.createElement('button');
+  toggle.type = 'button';
+  toggle.className = 'hugs-sound-toggle';
+  toggle.setAttribute('aria-label', 'Turn HUGS interaction sounds on');
+  toggle.setAttribute('aria-pressed', 'false');
+  toggle.innerHTML = '<span class="sound-wave" aria-hidden="true">♪</span><span class="sound-label">Sound off</span>';
+  document.body.appendChild(toggle);
+
+  let soundEnabled = sessionStorage.getItem('hugsSoundEnabled') === 'true';
+  let audioContext;
+
+  if (soundEnabled) {
+    toggle.setAttribute('aria-pressed', 'true');
+    toggle.setAttribute('aria-label', 'Turn HUGS interaction sounds off');
+    toggle.querySelector('.sound-label').textContent = 'Sound on';
+  }
+
+  function getAudioContext() {
+    if (!audioContext) {
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      if (AudioContext) audioContext = new AudioContext();
+    }
+    if (audioContext && audioContext.state === 'suspended') audioContext.resume();
+    return audioContext;
+  }
+
+  function tone(frequency, delay = 0, duration = .075, volume = .035) {
+    const context = getAudioContext();
+    if (!context) return;
+    const start = context.currentTime + delay;
+    const oscillator = context.createOscillator();
+    const gain = context.createGain();
+    oscillator.type = 'sine';
+    oscillator.frequency.setValueAtTime(frequency, start);
+    gain.gain.setValueAtTime(.0001, start);
+    gain.gain.exponentialRampToValueAtTime(volume, start + .012);
+    gain.gain.exponentialRampToValueAtTime(.0001, start + duration);
+    oscillator.connect(gain).connect(context.destination);
+    oscillator.start(start);
+    oscillator.stop(start + duration + .02);
+  }
+
+  function playInteractionSound(element) {
+    const label = (element.textContent || '').toLowerCase();
+    if (/open|download|save|your hug has arrived/.test(label)) {
+      tone(523.25, 0, .11, .038);
+      tone(783.99, .085, .16, .03);
+    } else if (/send|buy|shop|support|choose|personalize/.test(label)) {
+      tone(392, 0, .08, .03);
+      tone(587.33, .055, .12, .025);
+    } else {
+      tone(440, 0, .07, .022);
+    }
+  }
+
+  toggle.addEventListener('click', () => {
+    soundEnabled = !soundEnabled;
+    sessionStorage.setItem('hugsSoundEnabled', String(soundEnabled));
+    toggle.setAttribute('aria-pressed', String(soundEnabled));
+    toggle.setAttribute('aria-label', soundEnabled ? 'Turn HUGS interaction sounds off' : 'Turn HUGS interaction sounds on');
+    toggle.querySelector('.sound-label').textContent = soundEnabled ? 'Sound on' : 'Sound off';
+    if (soundEnabled) {
+      tone(523.25, 0, .1, .035);
+      tone(659.25, .07, .14, .03);
+    }
+  });
+
+  document.addEventListener('click', event => {
+    const button = event.target.closest(buttonSelector);
+    if (!button || button === toggle) return;
+    button.classList.add('is-electric-pressed');
+    window.setTimeout(() => button.classList.remove('is-electric-pressed'), 180);
+    if (soundEnabled) playInteractionSound(button);
+  });
+})();
+
+
+/* Sitewide HUGS Live Help */
+(()=>{
+ if(document.querySelector('.hugs-help-launcher'))return;
+ const style=document.createElement('style');style.textContent=`.hugs-help-launcher{position:fixed;right:18px;bottom:78px;z-index:9997;border:0;border-radius:999px;background:#071f3b;color:#fff;padding:13px 17px;font-weight:900;box-shadow:0 10px 30px rgba(7,31,59,.28);cursor:pointer}.hugs-help-panel{position:fixed;right:18px;bottom:132px;z-index:9998;width:min(380px,calc(100vw - 28px));max-height:min(650px,75vh);overflow:auto;background:#fff;border:1px solid #dce7ef;border-radius:24px;box-shadow:0 24px 70px rgba(7,31,59,.25);display:none}.hugs-help-panel.open{display:block}.hh-head{padding:20px;background:linear-gradient(135deg,#071f3b,#1267ff);color:#fff;border-radius:23px 23px 0 0}.hh-head strong{font-size:1.2rem}.hh-status{margin-top:6px;font-size:.78rem;font-weight:800;opacity:.9}.hh-body{padding:18px}.hh-search{width:100%;box-sizing:border-box;border:1px solid #ccdbe6;border-radius:14px;padding:12px 13px;margin-bottom:10px;font:inherit}.hh-tools{display:flex;gap:8px;margin:0 0 12px}.hh-tool{flex:1;text-align:center;padding:9px;border-radius:11px;background:#eef7ff;color:#071f3b;font-weight:900;font-size:.82rem;text-decoration:none}.hh-options{display:grid;gap:9px}.hh-option{border:1px solid #dce7ef;background:#f7fafc;border-radius:14px;padding:12px;text-align:left;font-weight:800;color:#071f3b;cursor:pointer}.hh-form{display:none}.hh-form label{display:block;font-weight:800;color:#071f3b;margin:10px 0 5px}.hh-form input,.hh-form textarea{width:100%;box-sizing:border-box;border:1px solid #ccdbe6;border-radius:12px;padding:11px;font:inherit}.hh-form textarea{min-height:90px}.hh-send{width:100%;margin-top:12px;border:0;border-radius:13px;background:#1267ff;color:#fff;padding:12px;font-weight:900}.hh-small{color:#68758b;font-size:.82rem;line-height:1.45;margin-top:10px}.hh-close{float:right;background:transparent;border:0;color:#fff;font-size:1.2rem;cursor:pointer}@media(max-width:520px){.hugs-help-launcher{right:12px;bottom:72px}.hugs-help-panel{right:8px;bottom:124px;width:calc(100vw - 16px)}}`;document.head.appendChild(style);
+ const tawkConfig=window.HUGS_TAWK||{};let tawkReady=false,tawkStatus='offline';
+ function loadTawk(){if(!tawkConfig.propertyId||!tawkConfig.widgetId||document.getElementById('hugs-tawk-script'))return;window.Tawk_API=window.Tawk_API||{};window.Tawk_LoadStart=new Date();window.Tawk_API.onLoad=function(){tawkReady=true;tawkStatus=window.Tawk_API.getStatus?window.Tawk_API.getStatus():'offline';if(window.Tawk_API.hideWidget)window.Tawk_API.hideWidget();updateStatus()};window.Tawk_API.onStatusChange=function(status){tawkStatus=status;updateStatus()};const s=document.createElement('script');s.id='hugs-tawk-script';s.async=true;s.charset='UTF-8';s.setAttribute('crossorigin','*');s.src='https://embed.tawk.to/'+encodeURIComponent(tawkConfig.propertyId)+'/'+encodeURIComponent(tawkConfig.widgetId);document.head.appendChild(s)}
+ loadTawk();
+ const launch=document.createElement('button');launch.className='hugs-help-launcher';launch.type='button';launch.textContent='♡ Need a HUG?';launch.setAttribute('aria-label','Open HUGS Live Help');
+ const panel=document.createElement('aside');panel.className='hugs-help-panel';panel.setAttribute('aria-label','HUGS Live Help');panel.innerHTML=`<div class="hh-head"><button class="hh-close" aria-label="Close help">×</button><strong>HUGS Live Help</strong><div style="margin-top:5px;font-size:.9rem;opacity:.86">How can we help you today?</div><div class="hh-status" aria-live="polite">Message support available</div></div><div class="hh-body"><input class="hh-search" type="search" placeholder="Ask HUGS or find help…" aria-label="Ask HUGS or find help"><div class="hh-tools"><a class="hh-tool" href="help-center.html">FAQs</a><a class="hh-tool" href="hug-tracking.html">Track a HUG</a></div><div class="hh-options"><button class="hh-option" data-cat="Order Help">🛍️ Help with an order</button><button class="hh-option" data-cat="HUG Request">🤝 Check my HUG request</button><button class="hh-option" data-cat="Food Partner">🚚 Food donation / pickup help</button><button class="hh-option" data-cat="Artist Help">🎨 Artist submission help</button><button class="hh-option" data-cat="Donation or Payment">💳 Donation or payment help</button><button class="hh-option" data-cat="Website Direction">🧭 Help finding something</button><button class="hh-option" data-cat="General Support">💬 Talk to HUGSLinks</button></div><form class="hh-form"><button type="button" class="hh-back" style="border:0;background:none;padding:0;color:#1267ff;font-weight:800">← Back</button><h3 class="hh-title" style="color:#071f3b;margin:12px 0 5px"></h3><label>Name *</label><input name="name" required autocomplete="name"><label>Email *</label><input name="email" type="email" required autocomplete="email"><label>Reference number</label><input name="reference" placeholder="Order, HUG, FOOD or ARTIST number"><label>How can we help? *</label><textarea name="message" required></textarea><input type="text" name="bot_field" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px"><button class="hh-send" type="submit">Send to HUGSLinks</button><div class="hh-small">Please don't send passwords, payment-card numbers, medical documents or exact private recipient addresses in chat.</div></form><div class="hh-result" aria-live="polite"></div></div>`;
+ document.body.append(panel,launch);const search=panel.querySelector('.hh-search');const options=panel.querySelector('.hh-options'),form=panel.querySelector('.hh-form'),title=panel.querySelector('.hh-title'),result=panel.querySelector('.hh-result'),statusEl=panel.querySelector('.hh-status');let category='General Support';const updateStatus=()=>{statusEl.textContent=(tawkReady&&tawkStatus==='online')?'● Live support online':'Message support available';launch.textContent=(tawkReady&&tawkStatus==='online')?'● Need a HUG?':'♡ Need a HUG?'};
+ updateStatus();search.addEventListener('keydown',e=>{if(e.key==='Enter'&&search.value.trim()){e.preventDefault();const q=search.value.trim();const url='help-center.html?q='+encodeURIComponent(q);location.href=url}});launch.onclick=()=>panel.classList.toggle('open');panel.querySelector('.hh-close').onclick=()=>panel.classList.remove('open');panel.querySelector('.hh-back').onclick=()=>{form.style.display='none';options.style.display='grid';result.innerHTML=''};
+ panel.querySelectorAll('.hh-option').forEach(b=>b.onclick=()=>{category=b.dataset.cat;if(tawkReady&&tawkStatus==='online'&&window.Tawk_API){try{window.Tawk_API.setAttributes&&window.Tawk_API.setAttributes({help_category:category,website_page:location.pathname},()=>{});window.Tawk_API.addTags&&window.Tawk_API.addTags([category.replace(/[^a-z0-9]+/gi,'-').toLowerCase()]);window.Tawk_API.showWidget&&window.Tawk_API.showWidget();window.Tawk_API.maximize&&window.Tawk_API.maximize();panel.classList.remove('open');return}catch(e){}}title.textContent=category;options.style.display='none';form.style.display='block'});
+ form.addEventListener('submit',async e=>{e.preventDefault();const btn=form.querySelector('.hh-send'),fd=new FormData(form);btn.disabled=true;btn.textContent='Sending…';try{const res=await fetch('/.netlify/functions/submit-support',{method:'POST',headers:{'Content-Type':'application/json'},cache:'no-store',credentials:'omit',referrerPolicy:'no-referrer',body:JSON.stringify({category,name:fd.get('name'),email:fd.get('email'),reference:fd.get('reference'),message:fd.get('message'),bot_field:fd.get('bot_field'),page:location.pathname})});const data=await res.json();if(!res.ok||!data.ok)throw new Error(data.error||'Message could not be sent.');form.reset();form.style.display='none';result.innerHTML='<div style="padding:14px;border-radius:14px;background:#eef7ff;color:#071f3b;border:1px solid #b9dcff"><strong>Message received.</strong><br>Your support reference is <strong>'+data.support_id+'</strong>. Save it for follow-up.</div>'}catch(err){result.textContent=err.message}finally{btn.disabled=false;btn.textContent='Send to HUGSLinks'}});
+})();
+
+/* HUGSLinks English / Spanish language control */
+(()=>{
+ const STORAGE_KEY='hugsLanguage';
+ const dictionary={
+'Home':'Inicio','Shop':'Tienda','HUGS Cards':'Tarjetas HUGS','Art':'Arte','Food':'Alimentos','Housing':'Vivienda','Business':'Negocios','Help App':'App de Ayuda','Help Center':'Centro de Ayuda','Resources':'Recursos','About':'Nosotros','Contact':'Contacto','Menu':'Menú',
+'Premium help network':'Red de ayuda premium','Art, support, and community systems built with care.':'Arte, apoyo y sistemas comunitarios creados con cuidado.','HUGSLinks connects creative products, community support, business services, and practical resources into one clean premium ecosystem.':'HUGSLinks conecta productos creativos, apoyo comunitario, servicios para negocios y recursos prácticos en un ecosistema premium y accesible.',
+'Send a HUG':'Enviar un HUG','Support Through Art':'Apoyar a través del arte','Find Local Food':'Encontrar alimentos locales','HUGS Navigator':'Navegador HUGS','How can HUGS help today?':'¿Cómo puede ayudarte HUGS hoy?','Choose what you need—or how you want to help—and we’ll take you directly to the right HUGSLinks path.':'Elige lo que necesitas —o cómo quieres ayudar— y te llevaremos directamente al recurso adecuado de HUGSLinks.',
+'I need food':'Necesito alimentos','Food support and local resources':'Apoyo alimentario y recursos locales','I need housing help':'Necesito ayuda con vivienda','Housing navigation and advocacy':'Orientación y defensa para vivienda','I need clothing / winter help':'Necesito ropa / ayuda para el invierno','Coats, cold-weather and emergency resources':'Abrigos y recursos para el frío y emergencias','I need benefits':'Necesito beneficios','Government assistance and HRA pathways':'Asistencia gubernamental y opciones de HRA','I want to help someone':'Quiero ayudar a alguien','Volunteer, become a helper or support a HUG':'Hazte voluntario, ayudante o apoya un HUG','I’m an artist':'Soy artista','Submit work and join the art community':'Envía tu trabajo y únete a la comunidad artística','I want to support HUGS':'Quiero apoyar a HUGS','Help the mission grow and reach more people':'Ayuda a que la misión crezca y llegue a más personas','Not sure where to start?':'¿No sabes por dónde empezar?','Open the HUGS Help Center →':'Abrir el Centro de Ayuda HUGS →',
+'Help starts here':'La ayuda comienza aquí','Find the right help first.':'Encuentra primero la ayuda adecuada.','Find local food and practical resources first, then continue into HUGS Help when you need more support.':'Encuentra primero alimentos locales y recursos prácticos; después continúa con HUGS Help cuando necesites más apoyo.',
+'Art & Community':'Arte y Comunidad','Premium art, creative programs, and support campaigns.':'Arte premium, programas creativos y campañas de apoyo.','Food Support':'Apoyo Alimentario','Fresh food support, outreach and partner coordination.':'Apoyo con alimentos frescos, alcance comunitario y coordinación con colaboradores.','Housing Help':'Ayuda de Vivienda','Housing navigation, advocacy and resource direction.':'Orientación de vivienda, defensa y conexión con recursos.','Business Services':'Servicios para Negocios','Creative setup, digital support and business growth.':'Configuración creativa, apoyo digital y crecimiento empresarial.','The mobile help concept and service access point.':'El punto móvil de acceso a ayuda y servicios.',
+'Premium access':'Acceso premium','Hugslinks members.':'Miembros de Hugslinks.','partnerships/VIP members and B2B project accounts + connecting resorces and business sevices .':'Alianzas, miembros VIP y cuentas de proyectos B2B, conectando recursos y servicios para negocios.','View shop':'Ver tienda','Read mission':'Leer misión',
+'HUGS — Help Under Good Service':'HUGS — Ayuda a través de un buen servicio','A community support and creative empowerment ecosystem built around connection, service, and opportunity.':'Un ecosistema de apoyo comunitario y empoderamiento creativo basado en conexión, servicio y oportunidades.','Support':'Apoyo','Shop HUGS':'Comprar HUGS','Free 9/11 Memorial HUG':'HUG conmemorativo del 11-S gratis','Support through art':'Apoyar a través del arte','Community resources':'Recursos comunitarios','Request help or partnership':'Solicitar ayuda o colaboración','Business services':'Servicios para negocios','Admin Access':'Acceso administrativo',
+'Language:':'Idioma:','Need a HUG?':'¿Necesitas un HUG?','Sound off':'Sonido apagado','Sound on':'Sonido activado','HUGS Live Help':'Ayuda en vivo de HUGS','How can we help you today?':'¿Cómo podemos ayudarte hoy?','Message support available':'Soporte por mensaje disponible','FAQs':'Preguntas frecuentes','Track a HUG':'Rastrear un HUG','Help with an order':'Ayuda con un pedido','Check my HUG request':'Revisar mi solicitud de HUG','Food donation / pickup help':'Ayuda con donación / recogida de alimentos','Artist submission help':'Ayuda con envío de artista','Donation or payment help':'Ayuda con donación o pago','Help finding something':'Ayuda para encontrar algo','Talk to HUGSLinks':'Hablar con HUGSLinks','Name *':'Nombre *','Email *':'Correo electrónico *','Reference number':'Número de referencia','How can we help? *':'¿Cómo podemos ayudarte? *','Send to HUGSLinks':'Enviar a HUGSLinks','← Back':'← Volver',
+'Products With Purpose':'Productos con propósito','Open Free HUG':'Abrir HUG gratis','Ready to Send':'Listo para enviar','Animated HUGS Card':'Tarjeta HUGS animada','Choose a HUG Card':'Elige una tarjeta HUG','Give Love. Send a HUG.':'Da amor. Envía un HUG.','Three Ways to Connect':'Tres formas de conectar','Choose Your HUG':'Elige tu HUG','Personalized':'Personalizado','Most Popular':'Más popular','Personalized HUG':'HUG personalizado','Personalize a HUG':'Personaliza un HUG','Recipient name':'Nombre del destinatario','Personal message':'Mensaje personal','Sender name':'Nombre del remitente','Occasion details':'Detalles de la ocasión','Custom':'Personalizado','Premium':'Premium','Custom HUG Card':'Tarjeta HUG personalizada','Request a Custom HUG':'Solicitar un HUG personalizado','More Ways to Support HUGSLinks':'Más formas de apoyar a HUGSLinks','Explore Art →':'Explorar arte →','Learn About the Mission →':'Conocer la misión →','Every HUG Can Create Impact':'Cada HUG puede generar impacto',
+'Need help?':'¿Necesitas ayuda?','Call on HUGS.':'Cuenta con HUGS.','I Need Help':'Necesito ayuda','I Want to Help':'Quiero ayudar','Connection Into Action':'De la conexión a la acción','Request a HUG':'Solicitar un HUG','Give a HUG':'Dar un HUG','Become a HUGS Helper':'Hazte ayudante de HUGS','Become a Helper':'Hazte ayudante','View Available HUG Missions':'Ver misiones HUG disponibles','Open My Assigned Mission':'Abrir mi misión asignada','Support a Mission':'Apoyar una misión','Sponsor a HUG':'Patrocinar un HUG','HUG Requests':'Solicitudes HUG','What can you call on HUGS for?':'¿Para qué puedes contar con HUGS?','Essential Shopping':'Compras esenciales','Supply Delivery':'Entrega de suministros','Partner Pickup':'Recogida de colaboradores','Housing Navigation':'Orientación de vivienda','Resource Navigation':'Orientación de recursos','Creative Support':'Apoyo creativo','Business Support':'Apoyo empresarial','How a HUG Mission Works':'Cómo funciona una misión HUG','Request':'Solicitud','Review':'Revisión','Match':'Asignación','Help':'Ayuda','Confirm':'Confirmación','HUGS Helpers':'Ayudantes de HUGS','Active HUG':'HUG activo',
+'Helpful links and preparation guides.':'Enlaces útiles y guías de preparación.','Ask for direction':'Pedir orientación','Housing help':'Ayuda de vivienda','Check Government Services Available Now':'Consultar servicios gubernamentales disponibles','Resource categories':'Categorías de recursos','Open housing page':'Abrir página de vivienda','Open food page':'Abrir página de alimentos','Creative support':'Apoyo creativo','Open art page':'Abrir página de arte',
+'Mission':'Misión','Help Under Good Service.':'Ayuda a través de un buen servicio.','Support HUGS':'Apoyar HUGS','Brand Promise':'Promesa de marca','Our Vision':'Nuestra visión','Community Support':'Apoyo comunitario','Creative Empowerment':'Empoderamiento creativo','Housing & Resource Navigation':'Orientación de vivienda y recursos','Food Assistance Programs':'Programas de asistencia alimentaria','Business Development Support':'Apoyo al desarrollo empresarial','Built For Community':'Creado para la comunidad','A premium support network with purpose.':'Una red premium de apoyo con propósito.',
+'Request help, support, or services.':'Solicita ayuda, apoyo o servicios.','Shop / Purchase':'Tienda / Compra','Send message':'Enviar mensaje','Connect with HUGSLinks':'Conecta con HUGSLinks',
+'HUGSLinks Food Support':'Apoyo alimentario HUGSLinks','Find Food.':'Encuentra alimentos.','Find Food Near You':'Encuentra alimentos cerca de ti','View More Resources':'Ver más recursos','Search NYC food resources.':'Busca recursos alimentarios de NYC.','Open Find Food':'Abrir buscador de alimentos','Food Support Options':'Opciones de apoyo alimentario','Food Pantries':'Despensas de alimentos','Community Meals':'Comidas comunitarias','Support Programs':'Programas de apoyo','Food partners and community organizations':'Colaboradores alimentarios y organizaciones comunitarias','Donate Food or Schedule a Pickup':'Donar alimentos o programar una recogida',
+'HUGSLinks Housing Help':'Ayuda de vivienda HUGSLinks','Find housing. Keep housing.':'Encuentra vivienda. Conserva tu vivienda.','Start Housing Navigation':'Comenzar orientación de vivienda','Housing Watch':'Vigilancia de vivienda','Welcome to our HUGS Help Housing Navigation Page.':'Bienvenido a nuestra página de orientación de vivienda HUGS Help.','Find housing programs':'Encontrar programas de vivienda','Prepare your documents':'Prepara tus documentos','Build your housing plan':'Crea tu plan de vivienda','See what changed':'Ver qué cambió','Housing Assistance & Affordable Housing':'Asistencia de vivienda y vivienda asequible','Rental Assistance':'Asistencia de alquiler','Prevention':'Prevención','Affordable Housing':'Vivienda asequible','Public Housing':'Vivienda pública','Voucher Program':'Programa de vales','Supportive Housing':'Vivienda con apoyo','Emergency Assistance':'Asistencia de emergencia','Emergency Rent Help':'Ayuda de emergencia para el alquiler','Housing Rights':'Derechos de vivienda','Housing Legal Help':'Ayuda legal de vivienda','A Simple Housing Navigation Path':'Una ruta sencilla de orientación de vivienda',
+'Creative business support.':'Apoyo creativo para negocios.','Request service':'Solicitar servicio','Buy service package':'Comprar paquete de servicios','Service categories':'Categorías de servicios','Website cleanup':'Optimización de sitio web','Creative commerce':'Comercio creativo','Brand systems':'Sistemas de marca',
+'Creativity that connects.':'Creatividad que conecta.','Art that creates impact.':'Arte que genera impacto.','Explore Collections':'Explorar colecciones','Meet the Artists':'Conocer a los artistas','Submit Your Art':'Enviar tu arte','Vote for Art':'Votar por arte','Collect Art':'Coleccionar arte','Create & Participate':'Crear y participar','Art With Purpose':'Arte con propósito','Featured Collections':'Colecciones destacadas','Art worth living with.':'Arte con el que vale la pena vivir.','Black Gold Series':'Serie Black Gold','Luxe Collection':'Colección Luxe','Original Art':'Arte original','Prints & Editions':'Impresiones y ediciones','Digital Art':'Arte digital','Founding Artist':'Artista fundador','Explore Swan\'s Work':'Explorar el trabajo de Swan','Commission Artwork':'Encargar una obra','Artist Community':'Comunidad de artistas','Your work deserves a path.':'Tu trabajo merece un camino.','Artists: Introduce Your Work':'Artistas: presenten su trabajo','Collectors & Creative Partners':'Coleccionistas y colaboradores creativos','Start a Creative Conversation':'Iniciar una conversación creativa','Art With Impact':'Arte con impacto','Creativity can move more than people.':'La creatividad puede mover más que a las personas.','Art You Can Send':'Arte que puedes enviar','Turn artwork into a HUG.':'Convierte el arte en un HUG.','Explore HUGS Cards':'Explorar tarjetas HUGS'
+ };
+ const originals=new WeakMap();
+ function translateText(root,lang){
+  const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT),nodes=[];while(walker.nextNode())nodes.push(walker.currentNode);
+  nodes.forEach(n=>{const p=n.parentElement;if(!p||p.closest('[data-no-translate],script,style,noscript,input,textarea,select,option'))return;if(!originals.has(n))originals.set(n,n.nodeValue);const original=originals.get(n);if(lang==='en'){n.nodeValue=original;return}const lead=original.match(/^\\s*/)?.[0]||'',trail=original.match(/\\s*$/)?.[0]||'',key=original.trim();if(dictionary[key])n.nodeValue=lead+dictionary[key]+trail});
+ }
+ function apply(lang){lang=lang==='es'?'es':'en';localStorage.setItem(STORAGE_KEY,lang);document.documentElement.lang=lang;document.documentElement.dataset.hugsLanguage=lang;translateText(document.body,lang);document.querySelectorAll('[data-home-lang]').forEach(b=>{const on=b.dataset.homeLang===lang;b.classList.toggle('active',on);b.setAttribute('aria-pressed',String(on))});document.dispatchEvent(new CustomEvent('hugs-language-change',{detail:{language:lang}}))}
+ function ensureSelector(){let select=document.getElementById('hugs-language-select');if(!select){select=document.createElement('select');select.id='hugs-language-select';select.hidden=true;select.innerHTML='<option value="en">English</option><option value="es">Español</option>';document.body.appendChild(select)}select.addEventListener('change',()=>apply(select.value));return select}
+ const select=ensureSelector(),saved=localStorage.getItem(STORAGE_KEY)==='es'?'es':'en';select.value=saved;apply(saved);
+ document.addEventListener('click',e=>{const b=e.target.closest('[data-home-lang]');if(!b)return;select.value=b.dataset.homeLang;apply(select.value)});
+})();
