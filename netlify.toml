@@ -25,3 +25,9 @@
   from = "/art-voting"
   to = "/art-voting.html"
   status = 200
+\n
+[[redirects]]
+  from = "/hugs-admin.html"
+  to = "/404.html"
+  status = 404
+  force = true
