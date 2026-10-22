@@ -15,13 +15,13 @@
     @media(max-width:800px){main{padding:28px 15px 80px}.grid-art{grid-template-columns:1fr}.competition{padding:18px}.live-vote-box{padding:22px 16px}.gallery-toolbar input{max-width:none;width:100%}.page-button{min-width:39px;height:39px;padding:0 10px}}
     @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}.live-dot,.vote-success{animation:none}.gallery-stage,.vote{transition:none}}
   </style>
-</head>
+<link rel="stylesheet" href="art-app.css"></head>
 <body>
   <a class="skip-link" href="#gallery">Skip to voting gallery</a>
-  <header class="topbar"><nav class="nav"><a class="brand" href="https://hugslinks.com/index.html">HUGSLinks</a><div class="navlinks"><a href="https://hugslinks.com/index.html">Home</a><a href="art-community.html">Art & Community</a><a href="artist-submit.html">Submit Art</a><a href="https://hugslinks.com/help-center.html">Help Center</a></div></nav></header>
+  <header class="topbar"><nav class="nav"><a class="brand" href="https://hugslinks.com/">HUGSLinks Home</a><button class="menu" type="button" aria-expanded="false" aria-label="Open navigation menu">Menu</button><div class="navlinks"><a href="art-community.html">Gallery</a><a href="art-voting.html">Leaderboard & Voting</a><a href="artist-submit.html">Submit Art</a><a href="https://hugslinks.com/">HUGSLinks Home</a></div></nav></header>
   <main>
     <div class="intro"><p class="exhibit-kicker">HUGS ART SPOTLIGHT</p><h1>See it. Feel it. Vote.</h1><p>Explore the HUGS digital exhibition and give a HUG to the artwork that moves you.</p></div>
-    <div class="open-note"><strong>Voting is open to everyone.</strong> No membership or email sign-in is required. To keep voting fair, each browser may vote once for each gallery artwork and once in each competition.</div>
+    <div class="open-note"><strong>Voting is currently in preview mode.</strong> No membership or email sign-in is required. To keep voting fair, each browser may vote once for each gallery artwork and once in each competition.</div>
     <section class="live-vote-box" aria-labelledby="liveVoteHeading"><div class="live-label"><span class="live-dot" aria-hidden="true"></span><span id="liveVoteHeading">HUGSLINKS LIVE ART VOTE</span></div><strong id="liveVoteTotal" class="live-count">0</strong><p>community HUGS and counting</p></section>
     <p id="voteFeedback" class="vote-feedback" role="status" aria-live="polite"></p>
 
@@ -66,5 +66,5 @@
     document.getElementById('gallerySearch').addEventListener('input',event=>{searchText=event.target.value.trim().toLowerCase();currentPage=1;renderGallery()});
     loadGallery();loadContest();setInterval(refreshLiveCounts,15000);
   </script>
-</body>
+<script src="art-app.js"></script></body>
 </html>
