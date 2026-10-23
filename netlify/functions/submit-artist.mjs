@@ -1,3 +1,4 @@
+import { triageSubmission } from "./_art-moderation.mjs";
 import { getStore } from "@netlify/blobs";
 
 const STORE = "hugs-artists";
@@ -67,6 +68,7 @@ export default async request => {
     const artworkYear = clean(form.get("artwork_year"), 4);
     const notes = clean(form.get("notes"), 1600);
     const interests = form.getAll("interests").map(value => clean(value, 100)).filter(Boolean).slice(0, 12);
+    const rightsConfirmed = form.get("rights_confirmation") === "yes";
     const confirmed = form.get("confirmation") === "yes" || form.get("confirmation") === "true";
     const file = form.get("artwork");
 
@@ -80,6 +82,7 @@ export default async request => {
     if (artworkYear && !/^\d{4}$/.test(artworkYear)) {
       return json({ ok: false, error: "Enter the artwork year as four digits." }, 400);
     }
+    if (!rightsConfirmed) return json({ ok: false, error: "Confirm that you created the artwork or have permission to submit it." }, 400);
     if (!confirmed) return json({ ok: false, error: "Artist confirmation is required." }, 400);
     if (!file || typeof file.arrayBuffer !== "function") {
       return json({ ok: false, error: "Choose an artwork image." }, 400);
@@ -98,8 +101,9 @@ export default async request => {
     const imageId = crypto.randomUUID();
     const imageURL = "/.netlify/functions/art-image?id=" + encodeURIComponent(imageId);
     const now = new Date().toISOString();
+    const moderation = triageSubmission([artist,statement,artworkTitle,notes,works]);
     const record = {
-      id: makeId(), status: "Pending Review", created_at: now, reviewed_at: null,
+      id: makeId(), status: moderation.status, moderation, rights_confirmed: true, created_at: now, reviewed_at: null,
       artist_name: artist, full_name: name, email, phone, city, region,
       primary_medium: medium, portfolio_url: portfolio, social_url: social,
       experience_level: experience, artist_statement: statement, artwork_links: works,
