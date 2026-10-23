@@ -6,6 +6,8 @@ function auth(r){const e=process.env.HUGS_ADMIN_TOKEN||"",h=r.headers.get("autho
 async function read(s){const x=await s.get(KEY,{type:"json",consistency:"strong"});return Array.isArray(x?.artists)?x.artists:Array.isArray(x)?x:[]}
 async function publishSubmission(artist){
   if(!artist.artwork_image_id)return {error:"This submission has no uploaded artwork image."};
+  if(artist.rights_confirmed!==true)return {error:"Artwork ownership or permission has not been confirmed."};
+  if(artist.moderation?.flags?.length)return {error:"Flagged artwork requires a recorded safety review before publishing."};
   const galleryStore=getStore(GALLERY_STORE);
   const gallery=await galleryStore.get(GALLERY_KEY,{type:"json",consistency:"strong"});
   const works=Array.isArray(gallery?.works)?gallery.works:[];
@@ -39,6 +41,7 @@ export default async request=>{
   const id=clean(b?.artist_id,100),action=clean(b?.action,60),artist=artists.find(x=>String(x?.id||"")===id);
   if(!artist)return json({ok:false,error:"Artist not found."},404);
   artist.admin_note=clean(b?.admin_note,1000);
+  if(action==="clear-flags"){if(!clean(b?.admin_note,1000))return json({ok:false,error:"Review notes are required."},400);artist.moderation={...(artist.moderation||{}),flags:[],cleared_by_admin:true,review_note:clean(b.admin_note,1000),reviewed_at:new Date().toISOString()};artist.status="Pending Review";await store.setJSON(KEY,{updated_at:new Date().toISOString(),artists});return json({ok:true,artist})}
   if(action==="approve-publish"){
     const published=await publishSubmission(artist);if(published.error)return json({ok:false,error:published.error},400);
     artist.status="Approved";artist.reviewed_at=new Date().toISOString();
