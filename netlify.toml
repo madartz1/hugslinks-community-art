@@ -41,3 +41,8 @@
   from = "/art-social"
   to = "/art-social.html"
   status = 200
+
+[[redirects]]
+  from = "/art-collections"
+  to = "/art-collections.html"
+  status = 200
