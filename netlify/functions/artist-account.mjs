@@ -16,6 +16,7 @@ export default async function handler(request){
  if(request.method==="POST"&&action==="request"){
  const body=await request.json(),email=clean(body.email,254).toLowerCase();
  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))return reply({ok:false,error:"Enter a valid email address."},400);
+ const limiter=getStore("hugs-artist-login");const throttleKey="request-"+await hash(email);const recent=await limiter.get(throttleKey,{type:"json",consistency:"strong"});if(recent&&Date.now()-recent.time<60*1000)return reply({ok:true,message:"If this email has an artist submission, a sign-in link will arrive shortly."});await limiter.setJSON(throttleKey,{time:Date.now()});
  const person=(await read()).find(a=>a.email===email);
  if(person&&process.env.HUGS_VOTER_RESEND_API_KEY&&process.env.HUGS_VOTER_FROM_EMAIL){
  const token=base(crypto.getRandomValues(new Uint8Array(32))),key=await hash(token);
