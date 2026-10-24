@@ -26,3 +26,10 @@
 .dialog-panel .scene{max-height:72dvh;aspect-ratio:16/11}
 .dialog-panel .room-controls{justify-content:center}
 @media(max-width:520px){.scene{aspect-ratio:4/3}.picture-frame{width:46%;height:37%;top:17%}.wall-grid{grid-template-columns:none;grid-auto-columns:78%;grid-template-rows:repeat(2,auto)}.dialog-panel{padding:10px}.dialog-head h2{font-size:1.2rem}}
+
+.selected-art-story{margin-top:25px;border-top:1px solid #dce6f0;padding-top:20px}
+.selected-art-story h3{color:#082a4a;margin:8px 0;font-size:1.3rem}
+.selected-art-story small{letter-spacing:.12em;color:#52677b}
+.selected-art-story button{display:block;margin-top:18px;background:#0a4f82;color:white;border:0;border-radius:12px;padding:12px 15px;font:inherit;cursor:pointer}
+.selected-art-story p{overflow-wrap:anywhere}
+.selected-art-story a:focus-visible,.selected-art-story button:focus-visible{outline:3px solid #1889bb;outline-offset:3px}
