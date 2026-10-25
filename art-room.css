@@ -33,3 +33,30 @@
 .selected-art-story button{display:block;margin-top:18px;background:#0a4f82;color:white;border:0;border-radius:12px;padding:12px 15px;font:inherit;cursor:pointer}
 .selected-art-story p{overflow-wrap:anywhere}
 .selected-art-story a:focus-visible,.selected-art-story button:focus-visible{outline:3px solid #1889bb;outline-offset:3px}
+
+
+/* Photographic gallery opening. The fixed canvas ratio preserves wall registration. */
+.scene,.scene[data-room=loft],.scene[data-room=gallery],.scene[data-room=lounge],.dialog-panel .scene{
+ aspect-ratio:3/2;background:#ddd6ca url("/assets/gallery-opening-v1.jpg") center/100% 100% no-repeat;
+ container-type:inline-size;display:block;max-height:none
+}
+.scene:after{display:none}
+.picture-frame,.scene[data-room=gallery] .picture-frame{
+ position:absolute;left:50%;top:38%;width:min(38cqw,calc(31cqw * var(--art-ratio,1)));
+ height:auto;aspect-ratio:auto;transform:translate(-50%,-50%);
+ border:clamp(3px,.55cqw,9px) solid #3d2b1d;outline:1px solid #c6a56d;padding:1px;
+ background:#3d2b1d;border-radius:0;display:block;line-height:0;
+ box-shadow:2px 5px 8px #20150965;transition:filter .2s
+}
+.picture-frame img{display:block;width:100%;height:auto;object-fit:contain;background:transparent}
+.picture-frame:active{transform:translate(-50%,-50%);filter:brightness(1.05)}
+.room-expand-zone{height:10%;background:linear-gradient(transparent,#0b141ac4)}
+.dialog-panel{width:min(1180px,100%)}.dialog-panel .scene{width:100%}
+.wall-item{background:#eee9df;display:flex;align-items:center;justify-content:center}
+.wall-item figure{width:100%;min-width:0}
+.wall-item .mini-frame{display:block;margin:auto;width:min(100%,calc(180px * var(--art-ratio,1)));height:auto;aspect-ratio:auto;border:6px solid #493321;outline:1px solid #b99a67;padding:1px;background:#493321}
+.wall-item img{display:block;width:100%;height:auto;object-fit:contain}
+.wall-item figcaption{line-height:1.5;padding-top:18px}
+.room-layout{grid-template-columns:minmax(0,1fr) 270px}
+@media(max-width:840px){.room-layout{grid-template-columns:1fr}.scene{border-radius:17px}}
+@media(max-width:520px){.room-intro h1{font-size:2rem}.room-intro{padding:20px}.scene,.dialog-panel .scene{aspect-ratio:3/2}.wall-item .mini-frame{border-width:5px}.room-expand-zone{font-size:.7rem}}
