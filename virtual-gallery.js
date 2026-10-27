@@ -1,7 +1,7 @@
 const $=id=>document.getElementById(id);
 const initial=[
- {id:'archive-eye',title:'Swan — The Eye',artist:'Swan the Artist',collection:'Black Gold Series',url:'assets/swan-eye.jpg',description:'From the founding Black Gold Series.'},
- {id:'archive-horizon',title:'Golden Horizon',artist:'HUGSLinks archive',collection:'Luxe Collection',url:'assets/golden-horizon.jpg',description:'From the HUGSLinks founding collection.'}
+ {id:'archive-eye',title:'Swan — The Eye',artist:'Swan the Artist',collection:'Black Gold Series',url:'assets/swan-eye.jpg',description:'A luminous swan emerges from the darkness, its graceful form traced in gold. Part of Swan the Artist’s Black Gold Series, this piece invites you to pause with the quiet power of transformation. Its rich contrast and expressive detail bring warmth, depth, and a sense of possibility to a space.'},
+ {id:'archive-horizon',title:'Golden Horizon',artist:'HUGSLinks archive',collection:'Luxe Collection',url:'assets/golden-horizon.jpg',description:'A city skyline glows through layers of gold and shadow, capturing the energy and possibility of a new horizon. This HUGSLinks founding collection piece brings a bold, atmospheric presence to a living room, office, or gathering space.'}
 ];
 let works=[...initial],engine=null,selected=null,priorFocus=null;
 const requested=new URLSearchParams(location.search).get('artwork');

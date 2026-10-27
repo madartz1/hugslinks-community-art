@@ -6,3 +6,7 @@
 .artwork-description .description-artist{font-size:14px;font-weight:700;color:#465950;margin:8px 0}
 .artwork-description .description-text{max-width:760px;font-size:16px;line-height:1.7;white-space:pre-wrap;overflow-wrap:anywhere;margin:12px 0 0}
 .art-card p.art-description{font-size:15px;line-height:1.65;color:#403b34;white-space:pre-wrap;overflow-wrap:anywhere;margin:10px 0 16px}
+
+.artist-story{padding:45px 6%;background:#fffdf8;border-top:1px solid #ded5c7;color:#343731}
+.artist-story h2{font:clamp(27px,4vw,42px) Georgia,serif;margin:12px 0}
+.artist-story p:not(.eyebrow){max-width:790px;font-size:16px;line-height:1.8}
