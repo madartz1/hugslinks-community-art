@@ -14,15 +14,23 @@ function drawCatalogue(){
   const img=document.createElement('img');img.src=work.url;img.alt=work.title+' by '+work.artist;img.loading='lazy';
   const title=document.createElement('h3');title.textContent=work.title;
   const author=document.createElement('p');author.textContent=work.artist;
+  const desc=document.createElement('p');desc.className='art-description';desc.textContent=work.description||'The artist’s description is coming soon.';
   const action=document.createElement('small');action.textContent='Approach artwork ↗';
-  mount.append(img);b.append(mount,title,author,action);b.onclick=async()=>{await enter();if(engine){if(!engine.approach(work.id))showDetails(work);$('gallery').scrollIntoView({behavior:'auto',block:'start'})}else showDetails(work)};$('artworks').append(b);
+  mount.append(img);b.append(mount,title,author,desc,action);b.onclick=async()=>{await enter();if(engine){if(!engine.approach(work.id))showDetails(work);$('gallery').scrollIntoView({behavior:'auto',block:'start'})}else showDetails(work)};$('artworks').append(b);
  }
 }
+function showDescription(work){
+ if(!work)return;
+ $('descriptionTitle').textContent=work.title;
+ $('descriptionArtist').textContent=work.artist;
+ $('descriptionText').textContent=work.description||'The artist’s description is coming soon.';
+ $('artworkDescription').hidden=false;
+}
 function showDetails(work){
- selected=work.id;priorFocus=document.activeElement;
+ selected=work.id;showDescription(work);priorFocus=document.activeElement;
  $('detailImage').src=work.url;$('detailImage').alt=work.title+' by '+work.artist;
  $('detailTitle').textContent=work.title;$('detailArtist').textContent=work.artist;
- $('detailDescription').textContent=work.description||work.collection;
+ $('detailDescription').textContent=work.description||'The artist’s description is coming soon.';
  $('artistLink').href=work.id.startsWith('archive-')?'art-collections.html':'artist-profile.html?artist='+encodeURIComponent(work.artist.trim().toLocaleLowerCase());
  $('artistLink').textContent=work.id.startsWith('archive-')?'Explore collection story →':'Explore artist →';
  $('shareStatus').textContent='';$('details').showModal();$('closeDetails').focus();drawCatalogue();
@@ -78,10 +86,21 @@ function createGallery(T){
  box(.65,1.08,.65,6.25,.54,5.3,mat('#d4c6ae'));const sculpture=new T.Mesh(new T.TorusGeometry(.3,.065,16,48),brass);sculpture.position.set(6.25,1.48,5.3);sculpture.rotation.set(.25,.4,0);scene.add(sculpture);
  // Welcome lettering is rendered as a scene label, not baked into artwork.
  function label(text,w,h){const c=document.createElement('canvas');c.width=1024;c.height=256;const g=c.getContext('2d');g.fillStyle='#eee8dc';g.fillRect(0,0,c.width,c.height);g.fillStyle='#393b32';g.font='50px Georgia';g.textAlign='center';g.fillText(text,512,140,980);const tx=new T.CanvasTexture(c);tx.colorSpace=T.SRGBColorSpace;return new T.Mesh(new T.PlaneGeometry(w,h),new T.MeshBasicMaterial({map:tx}))}
+ function artworkPlaque(work,w){
+  const c=document.createElement('canvas');c.width=1024;c.height=420;const g=c.getContext('2d');
+  g.fillStyle='#f3eee5';g.fillRect(0,0,c.width,c.height);g.textAlign='left';g.fillStyle='#302c27';
+  g.font='bold 58px Georgia';g.fillText(work.title,40,80,940);
+  g.font='44px Arial';g.fillText(work.artist,40,145,940);
+  g.font='34px Arial';const words=(work.description||'The artist’s description is coming soon.').split(/\s+/);let line='',y=210,clipped=false;
+  for(const word of words){const next=line?line+' '+word:word;if(g.measureText(next).width>940&&line){g.fillText(line,40,y);line=word;y+=47;if(y>330){clipped=true;break}}else line=next}
+  if(!clipped&&line)g.fillText(line,40,y);if(clipped){g.font='30px Arial';g.fillText('Read the full description below the gallery.',40,382,940)}
+  const tx=new T.CanvasTexture(c);tx.colorSpace=T.SRGBColorSpace;
+  return new T.Mesh(new T.PlaneGeometry(w,w*420/1024),new T.MeshBasicMaterial({map:tx}));
+ }
  const sign=label('H U G S   /   THE FOUNDING EXHIBITION',7,.7);sign.position.set(0,4,-9.87);scene.add(sign);
  let yaw=0,pitch=0,lastTime=performance.now(),active=true,drag=null,keys=new Set(),touchMove=null;
  const raycaster=new T.Raycaster(),pointer=new T.Vector2(),paintings=[],placements=new Map(),textureLoader=new T.TextureLoader();
- function select(id){selected=id;document.querySelectorAll('.art-card').forEach((b,i)=>b.setAttribute('aria-pressed',String(works[i]?.id===id)));const url=new URL(location.href);url.searchParams.set('artwork',id);history.replaceState(null,'',url)}
+ function select(id){selected=id;showDescription(works.find(w=>w.id===id));document.querySelectorAll('.art-card').forEach((b,i)=>b.setAttribute('aria-pressed',String(works[i]?.id===id)));const url=new URL(location.href);url.searchParams.set('artwork',id);history.replaceState(null,'',url)}
  function buildArtwork(work,i){
   let x,y=2.4,z,rotation,normal;
   if(i<2){x=i===0?-3:3;z=-9.82;rotation=0;normal=new T.Vector3(0,0,1)}
@@ -96,7 +115,7 @@ function createGallery(T){
    const f=.065;
    box(w+2*f,f,.105,0,h/2+f/2,0,walnut,group);box(w+2*f,f,.105,0,-h/2-f/2,0,walnut,group);
    box(f,h,.105,-w/2-f/2,0,0,walnut,group);box(f,h,.105,w/2+f/2,0,0,walnut,group);
-   const plate=label(work.title+'  /  '+work.artist,Math.min(w,2.7),.22);plate.position.set(0,-h/2-.28,.07);group.add(plate);
+   const plateWidth=Math.min(w,1.45);const plate=artworkPlaque(work,plateWidth);plate.position.set(0,-h/2-.1-plateWidth*420/2048,.07);group.add(plate);
    const light=new T.SpotLight('#fff0d5',55,9,.52,.8,1.6);light.position.copy(position.clone().add(normal.clone().multiplyScalar(2)));light.position.y=4.1;light.target.position.copy(position);scene.add(light,light.target);
    if(i<2){light.castShadow=true;light.shadow.mapSize.set(1024,1024)}
    placements.get(work.id).ready=true;
@@ -136,7 +155,7 @@ function createGallery(T){
 }
 fetch('/.netlify/functions/art-gallery',{cache:'no-store'}).then(r=>r.json()).then(data=>{
  if(!data.ok||!Array.isArray(data.works))throw Error('Gallery unavailable');
- const seen=new Set(works.map(w=>w.url));for(const w of data.works){if(!w?.id||!w.image_url||w.published===false||!validURL(w.image_url)||seen.has(w.image_url))continue;seen.add(w.image_url);works.push({id:w.id,title:w.title||'Untitled',artist:w.artist_name||'Community artist',collection:w.collection||'Community Gallery',description:w.description||w.artist_bio||'',url:w.image_url})}
+ const seen=new Set(works.map(w=>w.url));for(const w of data.works){if(!w?.id||!w.image_url||w.published===false||!validURL(w.image_url)||seen.has(w.image_url))continue;seen.add(w.image_url);works.push({id:w.id,title:w.title||'Untitled',artist:w.artist_name||'Community artist',collection:w.collection||'Community Gallery',description:w.description||'',url:w.image_url})}
  drawCatalogue();engine?.addWorks();if(engine&&requested&&works.some(w=>w.id===requested))engine.approach(requested);
  $('collectionStatus').textContent=works.length>initial.length?'The founding collection and approved community artwork. The first ten works are hung in this exhibition; every published work is available below.':'The founding collection · Published community artwork will join the exhibition.';
 }).catch(()=>$('collectionStatus').textContent='Showing the founding collection. Community artwork is temporarily unavailable.');
