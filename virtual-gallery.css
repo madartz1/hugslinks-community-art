@@ -10,3 +10,8 @@
 .artist-story{padding:45px 6%;background:#fffdf8;border-top:1px solid #ded5c7;color:#343731}
 .artist-story h2{font:clamp(27px,4vw,42px) Georgia,serif;margin:12px 0}
 .artist-story p:not(.eyebrow){max-width:790px;font-size:16px;line-height:1.8}
+
+.print-link{display:inline-block;margin-top:18px;background:#153e45;color:white;padding:14px 19px;text-decoration:none;font-weight:700;font-size:14px;border-radius:3px}
+.print-link[hidden]{display:none}
+.detail-copy .print-link{display:inline-block;margin:0 0 15px}
+.artwork-card{max-width:400px}.artwork-card .art-card{display:block;width:100%}.artwork-card .print-link{margin-top:14px}

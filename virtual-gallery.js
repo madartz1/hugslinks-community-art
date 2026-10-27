@@ -16,14 +16,20 @@ function drawCatalogue(){
   const author=document.createElement('p');author.textContent=work.artist;
   const desc=document.createElement('p');desc.className='art-description';desc.textContent=work.description||'The artist’s description is coming soon.';
   const action=document.createElement('small');action.textContent='Approach artwork ↗';
-  mount.append(img);b.append(mount,title,author,desc,action);b.onclick=async()=>{await enter();if(engine){if(!engine.approach(work.id))showDetails(work);$('gallery').scrollIntoView({behavior:'auto',block:'start'})}else showDetails(work)};$('artworks').append(b);
+  mount.append(img);b.append(mount,title,author,desc,action);b.onclick=async()=>{await enter();if(engine){if(!engine.approach(work.id))showDetails(work);$('gallery').scrollIntoView({behavior:'auto',block:'start'})}else showDetails(work)};const card=document.createElement('article');card.className='artwork-card';card.append(b);if(work.id==='archive-eye'||work.id==='archive-horizon'){const buy=document.createElement('a');buy.className='print-link';buy.href='buy-print.html?artwork='+encodeURIComponent(work.id);buy.textContent='Buy a print →';buy.setAttribute('aria-label','Buy a print of '+work.title);card.append(buy)}$('artworks').append(card);
  }
+}
+function updatePrintLink(link,work){
+ const eligible=work.id==='archive-eye'||work.id==='archive-horizon';
+ link.hidden=!eligible;
+ if(eligible)link.href='buy-print.html?artwork='+encodeURIComponent(work.id);
 }
 function showDescription(work){
  if(!work)return;
  $('descriptionTitle').textContent=work.title;
  $('descriptionArtist').textContent=work.artist;
  $('descriptionText').textContent=work.description||'The artist’s description is coming soon.';
+ updatePrintLink($('selectedPrintLink'),work);
  $('artworkDescription').hidden=false;
 }
 function showDetails(work){
@@ -31,6 +37,7 @@ function showDetails(work){
  $('detailImage').src=work.url;$('detailImage').alt=work.title+' by '+work.artist;
  $('detailTitle').textContent=work.title;$('detailArtist').textContent=work.artist;
  $('detailDescription').textContent=work.description||'The artist’s description is coming soon.';
+ updatePrintLink($('detailPrintLink'),work);
  $('artistLink').href=work.id.startsWith('archive-')?'art-collections.html':'artist-profile.html?artist='+encodeURIComponent(work.artist.trim().toLocaleLowerCase());
  $('artistLink').textContent=work.id.startsWith('archive-')?'Explore collection story →':'Explore artist →';
  $('shareStatus').textContent='';$('details').showModal();$('closeDetails').focus();drawCatalogue();
