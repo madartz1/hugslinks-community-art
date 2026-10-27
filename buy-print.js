@@ -10,5 +10,6 @@
  const $=id=>document.getElementById(id);
  $('printTitle').textContent=work.title;$('printArtist').textContent=work.artist;$('printDescription').textContent=work.description;
  $('artImage').src=work.image;$('artImage').alt=work.title+' by '+work.artist;
+ if(id==='archive-eye')$('pilotEdition').hidden=false;
  $('backToArt').href='virtual-gallery.html?artwork='+encodeURIComponent(id);
 })();
