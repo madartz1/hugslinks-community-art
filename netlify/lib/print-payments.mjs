@@ -25,8 +25,8 @@ export function validSession(s){return s?.livemode===false&&s.currency==='usd'&&
 export async function handlePayments(request,context,{env=process.env,fetcher=fetch,makeStripe=key=>new Stripe(key,{apiVersion:'2026-09-30.endive'}),makeStore=()=>getDeployStore({name:'print-checkout-config',consistency:'strong'}),now=()=>Date.now()}={}){
  if(context?.deploy?.context!=='deploy-preview')return json({error:'Not found'},404);
  const action=new URL(request.url).searchParams.get('action')||'config';
- const key=env.STRIPE_SECRET_KEY?.trim(),secret=env.HUGS_PRINT_QUOTE_SECRET;
- if(!/^(sk|rk)_test_/.test(key||'')||!secret||!env.HUGS_PRINT_BRIDGE_PREVIEW_TOKEN)return json({enabled:false,testOnly:true,error:!key?'Stripe sandbox key is missing':!/^(sk|rk)_test_/.test(key)?'Stripe key must be a sandbox test key':!secret?'Quote signing secret is missing':'Supplier bridge is not configured'},503);
+ let key=env.STRIPE_SECRET_KEY?.trim();if(key?.startsWith('STRIPE_SECRET_KEY='))key=key.slice(18).trim();if((key?.startsWith('\"')&&key.endsWith('\"'))||(key?.startsWith("'")&&key.endsWith("'")))key=key.slice(1,-1).trim();const secret=env.HUGS_PRINT_QUOTE_SECRET;
+ if(!/^(sk|rk)_test_/.test(key||'')||!secret||!env.HUGS_PRINT_BRIDGE_PREVIEW_TOKEN)return json({enabled:false,testOnly:true,error:!key?'Stripe sandbox key is missing':!/^(sk|rk)_test_/.test(key)?(/^(sk|rk)_live_/.test(key)?'A live Stripe key was saved; replace it with a sandbox test key':/^pk_/.test(key)?'A publishable Stripe key was saved; use a sandbox secret key':'Saved Stripe key is not a recognized sandbox secret key'):!secret?'Quote signing secret is missing':'Supplier bridge is not configured'},503);
  const stripe=makeStripe(key),store=makeStore();
  const origin=new URL(request.url).origin;
  if(!/^https:\/\/(?:[a-z0-9-]+--)?hugslinks-community-art\.netlify\.app$/.test(origin))return json({error:'Unsupported preview host'},400);
