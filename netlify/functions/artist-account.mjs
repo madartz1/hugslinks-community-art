@@ -22,7 +22,7 @@ export default async function handler(request){
  const token=base(crypto.getRandomValues(new Uint8Array(32))),key=await hash(token);
  await getStore("hugs-artist-login").setJSON(key,{id:person.id,expires:Date.now()+15*60*1000});
  const link=url.origin+"/artist-dashboard.html?login="+encodeURIComponent(token);
- const sent=await fetch("https://api.resend.com/emails",{method:"POST",headers:{"Authorization":"Bearer "+process.env.HUGS_VOTER_RESEND_API_KEY,"Content-Type":"application/json"},body:JSON.stringify({from:process.env.HUGS_VOTER_FROM_EMAIL,to:[email],subject:"Your HUGS Community Art sign-in link",text:"Open this private sign-in link within 15 minutes: "+link+"\nIf you did not request it, ignore this email."})});
+ const sent=await fetch("https://api.resend.com/emails",{method:"POST",headers:{"Authorization":"Bearer "+process.env.HUGS_VOTER_RESEND_API_KEY,"Content-Type":"application/json"},body:JSON.stringify({from:process.env.HUGS_VOTER_FROM_EMAIL,to:[email],subject:"Your HL Art Gallery sign-in link",text:"Open this private sign-in link within 15 minutes: "+link+"\nIf you did not request it, ignore this email."})});
  if(!sent.ok){console.error("Artist email delivery failed",sent.status);return reply({ok:false,error:"Sign-in email is temporarily unavailable."},503)}
  }
  return reply({ok:true,message:"If this email has an artist submission, a sign-in link will arrive shortly."});
@@ -40,7 +40,7 @@ export default async function handler(request){
  const id=await identity(request);if(!id)return reply({ok:false,error:"Sign in to continue."},401);
  const all=await read(),artist=all.find(a=>a.id===id);if(!artist)return reply({ok:false,error:"Account unavailable."},401);
  if(request.method==="GET"){return reply({ok:true,artist:{id:artist.id,artist_name:artist.artist_name,artwork_title:artist.artwork_title,status:artist.status,created_at:artist.created_at,reviewed_at:artist.reviewed_at,artwork_published_at:artist.artwork_published_at,profile_bio:artist.public_bio||"",proposed_bio:artist.proposed_bio||"",profile_review_status:artist.profile_review_status||"No edits pending"}})}
- if(request.method==="POST"&&action==="profile"){const body=await request.json(),bio=clean(body.bio,800);if(!bio||bio.length<20)return reply({ok:false,error:"Please write at least 20 characters."},400);artist.proposed_bio=bio;artist.profile_review_status="Pending Review";artist.profile_requested_at=new Date().toISOString();await artists().setJSON("artists",{updated_at:new Date().toISOString(),artists:all});return reply({ok:true,message:"Profile update submitted for HUGS review."})}
+ if(request.method==="POST"&&action==="profile"){const body=await request.json(),bio=clean(body.bio,800);if(!bio||bio.length<20)return reply({ok:false,error:"Please write at least 20 characters."},400);artist.proposed_bio=bio;artist.profile_review_status="Pending Review";artist.profile_requested_at=new Date().toISOString();await artists().setJSON("artists",{updated_at:new Date().toISOString(),artists:all});return reply({ok:true,message:"Profile update submitted for HL Art Gallery review."})}
  return reply({ok:false,error:"Method not allowed."},405);
  }catch(e){console.error("Artist dashboard error",e);return reply({ok:false,error:"Unable to complete that request."},500)}
 }

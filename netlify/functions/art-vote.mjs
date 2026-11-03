@@ -31,9 +31,9 @@ export default async request=>{
   const headers=guest.header?{"Set-Cookie":guest.header}:{};
   try{
     const inserted=await sql`INSERT INTO hugs_art_ratings(artwork_id,voter_hash,rating) VALUES(${artworkId},${voterHash},${1}) ON CONFLICT DO NOTHING RETURNING artwork_id`;
-    if(!inserted.length)return json({ok:false,error:"You already gave this artwork a HUG from this browser."},409,headers);
+    if(!inserted.length)return json({ok:false,error:"You already voted for this artwork from this browser."},409,headers);
     const [score]=await sql`SELECT COUNT(*)::int AS votes FROM hugs_art_ratings WHERE artwork_id=${artworkId}`;
-    return json({ok:true,artwork_id:artworkId,votes:score.votes,message:"Your HUG was counted."},200,headers);
+    return json({ok:true,artwork_id:artworkId,votes:score.votes,message:"Your vote was counted."},200,headers);
   }catch(error){
     console.error(error);
     return json({ok:false,error:"Voting temporarily unavailable."},503,headers);

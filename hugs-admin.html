@@ -14,7 +14,7 @@
     content="noindex, nofollow, noarchive"
   >
 
-  <title>HUGS Admin | HUGSLinks</title>
+  <title>HL Art Gallery Admin | HL Art Gallery</title>
 
   <link
     rel="stylesheet"
@@ -595,13 +595,13 @@
   <div class="admin-shell">
 
     <div class="admin-badge">
-      Private HUGS Control Center
+      Private HL Art Gallery Control Center
     </div>
 
-    <h1>HUGS Admin</h1>
+    <h1>HL Art Gallery Admin</h1>
 
     <p>
-      Review HUG Requests, approve HUGS Helpers,
+      Review support Requests, approve HL Art Gallery Helpers,
       create safe public missions, manage
       Helper-to-Mission connections, prepare
       private delivery routes and issue protected
@@ -624,7 +624,7 @@
     Requester, Helper, pickup, destination and
     tracking information shown here must remain
     private. Only sanitized mission information
-    should appear on the public HUG Missions board.
+    should appear on the public support Missions board.
 
   </div>
 
@@ -636,12 +636,12 @@
     id="loginCard"
   >
 
-    <div class="admin-lockup"><img src="assets/HUGS_Header_Logo_Transparent.png" alt=""></div>
+    <div class="admin-lockup"><span>HL Art Gallery</span></div>
     <div class="admin-private-label">🔒 Private Owner Access</div>
-    <h2>HUGS Admin Sign In</h2>
+    <h2>HL Art Gallery Admin Sign In</h2>
 
     <p>
-      Enter your HUGS Admin Token.
+      Enter your HL Art Gallery Admin Token.
       The token is kept only in this browser tab
       while the Admin Center is open.
     </p>
@@ -666,7 +666,7 @@
       id="loginButton"
       type="button"
     >
-      Open HUGS Admin
+      Open HL Art Gallery Admin
     </button>
 
   </section>
@@ -679,7 +679,7 @@
     <div class="admin-toolbar">
 
       <h2>
-        HUGS Help Operations
+        HL Art Gallery Help Operations
       </h2>
 
       <div class="toolbar-buttons">
@@ -764,7 +764,7 @@
         data-tab="requests"
         type="button"
       >
-        HUG Requests
+        support Requests
       </button>
 
       <button class="tab-button" data-tab="support" type="button">Support</button>
@@ -785,7 +785,7 @@
         data-tab="helpers"
         type="button"
       >
-        HUGS Helpers
+        HL Art Gallery Helpers
       </button>
 
       <button
@@ -819,7 +819,7 @@
         id="requestList"
       >
         <div class="loading">
-          Loading HUG Requests...
+          Loading support Requests...
         </div>
       </div>
 
@@ -832,10 +832,10 @@
     <!-- ARTISTS -->
     <section class="admin-section" id="artistsSection"><div class="record-grid" id="artistList"><div class="loading">Loading artist submissions...</div></div></section>
 
-    <section class="admin-section" id="contestSection"><div class="record-card"><h3>Art Competition</h3><button class="secondary-button" type="button" id="contestHealth">Check Voting Setup</button><p id="contestHealthStatus" role="status" aria-live="polite"></p><p>Choose a limited number of published entries, open and close voting, then publish first, second and third place.</p><div class="field"><label>Competition name</label><input id="contestName" value="HUGS Art Spotlight"></div><div class="field"><label>Maximum entries (3–30)</label><input id="contestLimit" type="number" min="3" max="30" value="10"></div><button class="primary-button" id="contestCreate" type="button">Create Competition</button><p id="contestAdminStatus" role="status" aria-live="polite"></p><div id="contestAdminEntries"></div><button class="secondary-button" id="contestSet" type="button">Save Selected Entries</button><button class="primary-button" id="contestOpen" type="button">Open Voting</button><button class="hold-button" id="contestClose" type="button">Close Voting</button><button class="primary-button" id="contestPublish" type="button">Publish Top 3</button></div></section><section class="admin-section" id="gallerySection"><div class="record-card"><h3>Manage Art Gallery</h3><p>Add or replace artwork directly from your phone. Only published records appear publicly.</p><div class="field"><label>Artwork ID (leave blank for new)</label><input id="galleryId" readonly placeholder="New artwork"></div><div class="field"><label>Title</label><input id="galleryTitle"></div><div class="field"><label>Artist</label><input id="galleryArtist"></div><div class="field"><label>Collection</label><select id="galleryCollection"><option>Black Gold Series</option><option>Luxe Collection</option></select></div><div class="field"><label>Choose image (JPEG, PNG or WebP, up to 8 MB)</label><input id="galleryUpload" type="file" accept="image/jpeg,image/png,image/webp"><img id="galleryPreview" alt="Artwork preview" style="display:none;max-width:100%;max-height:320px;object-fit:contain;border-radius:12px;margin:12px 0"><button class="secondary-button" id="galleryUploadButton" type="button">Upload Selected Image</button><p id="galleryUploadStatus" role="status" aria-live="polite"></p></div><div class="field"><label>Image URL (automatically filled after upload)</label><input id="galleryImage" type="text"></div><div class="field"><label>Medium</label><input id="galleryMedium"></div><div class="field"><label>Description</label><textarea id="galleryDescription"></textarea></div><label><input id="galleryPublished" type="checkbox" checked> Publish publicly</label><p><button class="primary-button" id="gallerySave" type="button">Save / Replace Artwork</button> <button class="secondary-button" id="galleryNew" type="button">New Artwork</button></p></div><div class="record-grid" id="galleryList" style="margin-top:20px"></div></section>
+    <section class="admin-section" id="contestSection"><div class="record-card"><h3>Art Competition</h3><button class="secondary-button" type="button" id="contestHealth">Check Voting Setup</button><p id="contestHealthStatus" role="status" aria-live="polite"></p><p>Choose a limited number of published entries, open and close voting, then publish first, second and third place.</p><div class="field"><label>Competition name</label><input id="contestName" value="HL Art Gallery Spotlight"></div><div class="field"><label>Maximum entries (3–30)</label><input id="contestLimit" type="number" min="3" max="30" value="10"></div><button class="primary-button" id="contestCreate" type="button">Create Competition</button><p id="contestAdminStatus" role="status" aria-live="polite"></p><div id="contestAdminEntries"></div><button class="secondary-button" id="contestSet" type="button">Save Selected Entries</button><button class="primary-button" id="contestOpen" type="button">Open Voting</button><button class="hold-button" id="contestClose" type="button">Close Voting</button><button class="primary-button" id="contestPublish" type="button">Publish Top 3</button></div></section><section class="admin-section" id="gallerySection"><div class="record-card"><h3>Manage Art Gallery</h3><p>Add or replace artwork directly from your phone. Only published records appear publicly.</p><div class="field"><label>Artwork ID (leave blank for new)</label><input id="galleryId" readonly placeholder="New artwork"></div><div class="field"><label>Title</label><input id="galleryTitle"></div><div class="field"><label>Artist</label><input id="galleryArtist"></div><div class="field"><label>Collection</label><select id="galleryCollection"><option>Black Gold Series</option><option>Luxe Collection</option></select></div><div class="field"><label>Choose image (JPEG, PNG or WebP, up to 8 MB)</label><input id="galleryUpload" type="file" accept="image/jpeg,image/png,image/webp"><img id="galleryPreview" alt="Artwork preview" style="display:none;max-width:100%;max-height:320px;object-fit:contain;border-radius:12px;margin:12px 0"><button class="secondary-button" id="galleryUploadButton" type="button">Upload Selected Image</button><p id="galleryUploadStatus" role="status" aria-live="polite"></p></div><div class="field"><label>Image URL (automatically filled after upload)</label><input id="galleryImage" type="text"></div><div class="field"><label>Medium</label><input id="galleryMedium"></div><div class="field"><label>Description</label><textarea id="galleryDescription"></textarea></div><label><input id="galleryPublished" type="checkbox" checked> Publish publicly</label><p><button class="primary-button" id="gallerySave" type="button">Save / Replace Artwork</button> <button class="secondary-button" id="galleryNew" type="button">New Artwork</button></p></div><div class="record-grid" id="galleryList" style="margin-top:20px"></div></section>
 <!-- FOOD PARTNERS -->
     <section class="admin-section" id="foodSection">
-      <div class="record-card" style="margin-bottom:18px;"><h3>HUGS Food Network Directory</h3><p>Manage public HUGS food listings and B2B partner inquiries separately from private pickup/donation operations.</p><a class="primary-button" href="food-network-admin.html" style="display:inline-block;text-decoration:none;">Open Food Network Admin</a></div>
+      <div class="record-card" style="margin-bottom:18px;"><h3>HL Art Gallery Food Network Directory</h3><p>Manage public HL Art Gallery food listings and B2B partner inquiries separately from private pickup/donation operations.</p><a class="primary-button" href="food-network-admin.html" style="display:inline-block;text-decoration:none;">Open Food Network Admin</a></div>
       <div class="record-grid" id="foodOfferList">
         <div class="loading">Loading private food partner offers...</div>
       </div>
@@ -853,7 +853,7 @@
         id="helperList"
       >
         <div class="loading">
-          Loading HUGS Helpers...
+          Loading HL Art Gallery Helpers...
         </div>
       </div>
 
@@ -895,13 +895,13 @@
         </div>
 
         <h3>
-          Prepare HUG Mission Route
+          Prepare support Mission Route
         </h3>
 
         <p class="route-intro">
           Add the private pickup and destination
           after a Helper has been assigned to a
-          HUG Mission.
+          support Mission.
         </p>
 
 
@@ -1130,7 +1130,7 @@
 
         <p class="route-intro">
           Generate a private tracking credential
-          for the recipient of an active HUG
+          for the recipient of an active support
           Mission.
         </p>
 
@@ -1203,7 +1203,7 @@
 
             <br>
 
-            Copy this code now. HUGS will not be
+            Copy this code now. HL Art Gallery will not be
             able to retrieve this exact plaintext
             code again.
 
@@ -1308,7 +1308,7 @@
 
             <br><br>
 
-            1. The private HUGS tracking page.
+            1. The private HL Art Gallery tracking page.
 
             <br>
 
@@ -1563,7 +1563,7 @@ async function adminFetch(
   if(!adminToken){
 
     throw new Error(
-      "HUGS Admin is locked."
+      "HL Art Gallery Admin is locked."
     );
 
   }
@@ -1611,7 +1611,7 @@ async function adminFetch(
   catch{
 
     throw new Error(
-      "The HUGS Admin service returned an invalid response."
+      "The HL Art Gallery Admin service returned an invalid response."
     );
 
   }
@@ -1659,7 +1659,7 @@ loginButton.addEventListener(
     if(!entered){
 
       showMessage(
-        "Enter the HUGS Admin Token.",
+        "Enter the HL Art Gallery Admin Token.",
         "error"
       );
 
@@ -1709,7 +1709,7 @@ loginButton.addEventListener(
 
 
       showMessage(
-        "HUGS Admin opened."
+        "HL Art Gallery Admin opened."
       );
 
     }
@@ -1730,7 +1730,7 @@ loginButton.addEventListener(
         false;
 
       loginButton.textContent =
-        "Open HUGS Admin";
+        "Open HL Art Gallery Admin";
 
     }
 
@@ -1824,7 +1824,7 @@ logoutButton.addEventListener(
     lockAdmin();
 
     showMessage(
-      "HUGS Admin locked."
+      "HL Art Gallery Admin locked."
     );
 
   }
@@ -1838,7 +1838,7 @@ logoutButton.addEventListener(
 async function loadRequests(){
 
   requestList.innerHTML =
-    '<div class="loading">Loading HUG Requests...</div>';
+    '<div class="loading">Loading support Requests...</div>';
 
 
   const result =
@@ -1866,7 +1866,7 @@ async function loadSupport(){
  const result=await adminFetch(SUPPORT_API);supportRecords=Array.isArray(result.threads)?result.threads:[];renderSupport();
 }
 function renderSupport(){
- if(!supportList)return;if(!supportRecords.length){supportList.innerHTML='<article class="record-card"><h3>No Support Requests</h3><p>New HUGS Live Help messages will appear here.</p></article>';return}
+ if(!supportList)return;if(!supportRecords.length){supportList.innerHTML='<article class="record-card"><h3>No Support Requests</h3><p>New HL Art Gallery Live Help messages will appear here.</p></article>';return}
  supportList.innerHTML=supportRecords.map(x=>{const id=safeId(x.id);return `<article class="record-card"><div class="record-top"><div><div class="record-id">${escapeHTML(x.id)}</div><h3>${escapeHTML(x.category||"Support")}</h3></div><span class="status-badge">${escapeHTML(x.status||"New")}</span></div><div class="record-details"><div class="detail"><strong>Name</strong>${escapeHTML(x.name||"")}</div><div class="detail"><strong>Email</strong>${escapeHTML(x.email||"")}</div><div class="detail"><strong>Reference</strong>${escapeHTML(x.reference||"None")}</div><div class="detail"><strong>Page</strong>${escapeHTML(x.page||"")}</div></div><div class="private-box"><div class="privacy-warning">PRIVATE SUPPORT MESSAGE</div>${escapeHTML(x.message||"")}</div><div class="mission-builder"><label>Private Admin Note</label><textarea id="support-note-${id}">${escapeHTML(x.admin_note||"")}</textarea><div class="record-actions"><button class="approve-button" onclick="supportAction('Open','${id}')">Open</button><button class="hold-button" onclick="supportAction('Waiting on Customer','${id}')">Waiting on Customer</button><button class="approve-button" onclick="supportAction('Resolved','${id}')">Resolved</button></div></div></article>`}).join("");
 }
 async function supportAction(status,id){const note=document.getElementById("support-note-"+id)?.value||"";try{await adminFetch(SUPPORT_API,{method:"POST",body:JSON.stringify({support_id:id,status,admin_note:note})});showMessage("Support request updated.");await loadSupport()}catch(e){showMessage(e.message,"error")}}
@@ -1879,7 +1879,7 @@ async function loadArtists(){
 }
 function renderArtists(){
  if(!artistList)return;
- if(!artistRecords.length){artistList.innerHTML='<article class="record-card"><h3>No Artist Submissions Yet</h3><p>New HUGSLinks artist introductions will appear here.</p></article>';return}
+ if(!artistRecords.length){artistList.innerHTML='<article class="record-card"><h3>No Artist Submissions Yet</h3><p>New HL Art Gallery artist introductions will appear here.</p></article>';return}
  artistPreviewURLs.forEach(url=>URL.revokeObjectURL(url));artistPreviewURLs=[];
  artistList.innerHTML=artistRecords.map(artistCard).join("");
  loadArtistPreviews();
@@ -1899,8 +1899,8 @@ async function loadArtistPreviews(){
 async function approveAndPublishArtist(id){
  const artist=artistRecords.find(a=>safeId(a.id)===id),imageId=artist&&artistImageId(artist);
  if(!artist||!imageId){showMessage("No uploaded artwork was found for this submission.","error");return}
- const title=artist.artwork_title||"Untitled Artwork",name=artist.artist_name||artist.full_name||"HUGSLinks Artist";
- if(!confirm(`Approve ${name} and publish ${title} directly to the public HUGS Art Voting Gallery?`))return;
+ const title=artist.artwork_title||"Untitled Artwork",name=artist.artist_name||artist.full_name||"HL Art Gallery Artist";
+ if(!confirm(`Approve ${name} and publish ${title} directly to the public HL Art Gallery · Voting?`))return;
  const note=document.getElementById("artist-note-"+id)?.value||"";
  try{
   const result=await adminFetch(ARTIST_API,{method:"POST",body:JSON.stringify({action:"approve-publish",artist_id:id,admin_note:note})});
@@ -1961,7 +1961,7 @@ function foodOfferCard(offer){
 async function approveFoodOffer(id){
  const summary=document.getElementById("food-summary-"+id)?.value.trim()||"";
  if(!summary){showMessage("Write a safe public food mission summary before approving.","error");return}
- if(!confirm("Approve this food offer and create an available HUG Mission?")) return;
+ if(!confirm("Approve this food offer and create an available support Mission?")) return;
  try{
   const result=await adminFetch(FOOD_API,{method:"POST",body:JSON.stringify({action:"approve-offer",offer_id:id,type:"Food Partner Pickup",area:document.getElementById("food-area-"+id)?.value||"",timing:document.getElementById("food-timing-"+id)?.value||"",summary})});
   showMessage("Food mission "+result.mission.id+" created.");
@@ -1978,7 +1978,7 @@ async function foodOfferAction(action,id){
 async function loadHelpers(){
 
   helperList.innerHTML =
-    '<div class="loading">Loading HUGS Helpers...</div>';
+    '<div class="loading">Loading HL Art Gallery Helpers...</div>';
 
 
   const result =
@@ -2054,7 +2054,7 @@ refreshButton.addEventListener(
 
 
       showMessage(
-        "HUGS Admin refreshed."
+        "HL Art Gallery Admin refreshed."
       );
 
     }
@@ -2160,10 +2160,10 @@ function renderRequests(){
 
       <div class="empty-state">
 
-        <h3>No HUG Requests Yet</h3>
+        <h3>No support Requests Yet</h3>
 
         <p>
-          New private HUG Requests will
+          New private support Requests will
           appear here for review.
         </p>
 
@@ -2220,7 +2220,7 @@ function requestCard(request){
           <h3>
             ${escapeHTML(
               request.request_type ||
-              "HUG Request"
+              "support Request"
             )}
           </h3>
 
@@ -2361,7 +2361,7 @@ function missionBuilder(
     <div class="mission-builder">
 
       <h4>
-        Create Safe Public HUG Mission
+        Create Safe Public support Mission
       </h4>
 
       <p>
@@ -2587,7 +2587,7 @@ async function approveRequest(requestId){
 
   if(
     !confirm(
-      "Approve this request and create the public HUG Mission?"
+      "Approve this request and create the public support Mission?"
     )
   ){
     return;
@@ -2623,7 +2623,7 @@ async function approveRequest(requestId){
 
 
     showMessage(
-      "HUG Mission " +
+      "support Mission " +
       result.mission.id +
       " created."
     );
@@ -2648,7 +2648,7 @@ async function holdRequest(requestId){
 
   if(
     !confirm(
-      "Place this HUG Request on hold?"
+      "Place this support Request on hold?"
     )
   ){
     return;
@@ -2658,7 +2658,7 @@ async function holdRequest(requestId){
   await requestAction(
     "hold-request",
     requestId,
-    "HUG Request placed on hold."
+    "support Request placed on hold."
   );
 
 }
@@ -2668,7 +2668,7 @@ async function declineRequest(requestId){
 
   if(
     !confirm(
-      "Decline this HUG Request?"
+      "Decline this support Request?"
     )
   ){
     return;
@@ -2678,7 +2678,7 @@ async function declineRequest(requestId){
   await requestAction(
     "decline-request",
     requestId,
-    "HUG Request declined."
+    "support Request declined."
   );
 
 }
@@ -2740,7 +2740,7 @@ function renderHelpers(){
 
       <div class="empty-state">
 
-        <h3>No HUGS Helpers Yet</h3>
+        <h3>No HL Art Gallery Helpers Yet</h3>
 
         <p>
           New Helper registrations will
@@ -2817,7 +2817,7 @@ function helperCard(helper){
           <h3>
             ${escapeHTML(
               name ||
-              "HUGS Helper"
+              "HL Art Gallery Helper"
             )}
           </h3>
 
@@ -3041,7 +3041,7 @@ async function approveHelper(helperId){
 
   if(
     !confirm(
-      "Approve this person as a HUGS Helper?"
+      "Approve this person as a HL Art Gallery Helper?"
     )
   ){
     return;
@@ -3051,7 +3051,7 @@ async function approveHelper(helperId){
   await helperAction(
     "approve-helper",
     helperId,
-    "HUGS Helper approved."
+    "HL Art Gallery Helper approved."
   );
 
 }
@@ -3061,7 +3061,7 @@ async function pauseHelper(helperId){
 
   if(
     !confirm(
-      "Pause this HUGS Helper?"
+      "Pause this HL Art Gallery Helper?"
     )
   ){
     return;
@@ -3071,7 +3071,7 @@ async function pauseHelper(helperId){
   await helperAction(
     "pause-helper",
     helperId,
-    "HUGS Helper paused."
+    "HL Art Gallery Helper paused."
   );
 
 }
@@ -3081,7 +3081,7 @@ async function reactivateHelper(helperId){
 
   if(
     !confirm(
-      "Reactivate this HUGS Helper?"
+      "Reactivate this HL Art Gallery Helper?"
     )
   ){
     return;
@@ -3091,7 +3091,7 @@ async function reactivateHelper(helperId){
   await helperAction(
     "reactivate-helper",
     helperId,
-    "HUGS Helper reactivated."
+    "HL Art Gallery Helper reactivated."
   );
 
 }
@@ -3326,7 +3326,7 @@ async function approveMatch(matchId){
 
   if(
     !confirm(
-      "Approve this Helper for the HUG Mission?"
+      "Approve this Helper for the support Mission?"
     )
   ){
     return;
@@ -3525,7 +3525,7 @@ async function savePrivateRoute(){
   if(!missionId){
 
     showMessage(
-      "Enter the assigned HUG Mission number.",
+      "Enter the assigned support Mission number.",
       "error"
     );
 
@@ -3650,7 +3650,7 @@ async function savePrivateRoute(){
 
 
     showMessage(
-      "Private HUG route saved."
+      "Private support route saved."
     );
 
 
@@ -3788,7 +3788,7 @@ async function issueRecipientTracking(){
   if(!missionId){
 
     showMessage(
-      "Enter the active HUG Mission number.",
+      "Enter the active support Mission number.",
       "error"
     );
 
@@ -3803,7 +3803,7 @@ async function issueRecipientTracking(){
   ){
 
     showMessage(
-      "Enter a valid HUG Mission number.",
+      "Enter a valid support Mission number.",
       "error"
     );
 
@@ -3861,7 +3861,7 @@ async function issueRecipientTracking(){
     ){
 
       throw new Error(
-        "HUGS did not return a recipient tracking credential."
+        "HL Art Gallery did not return a recipient tracking credential."
       );
 
     }

@@ -29,7 +29,7 @@ export default async request=>{
     const inserted=await sql`INSERT INTO hugs_contest_votes(contest_id,artwork_id,voter_hash) VALUES(${contest.id},${artworkId},${voterHash}) ON CONFLICT DO NOTHING RETURNING artwork_id`;
     if(!inserted.length)return json({ok:false,error:"You already voted in this competition from this browser."},409,headers);
     const [score]=await sql`SELECT COUNT(*)::int AS votes FROM hugs_contest_votes WHERE contest_id=${contest.id} AND artwork_id=${artworkId}`;
-    return json({ok:true,message:"Your competition HUG was counted.",artwork_id:artworkId,votes:score.votes},200,headers);
+    return json({ok:true,message:"Your competition vote was counted.",artwork_id:artworkId,votes:score.votes},200,headers);
   }catch(error){
     console.error("Contest vote database error",error);
     return json({ok:false,error:"Voting temporarily unavailable."},503,headers);

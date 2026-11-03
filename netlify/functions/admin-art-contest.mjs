@@ -11,7 +11,7 @@ const old=await store.get(KEY,{type:"json",consistency:"strong"});
 if(b.action==="create"){
 if(old&&old.status!=="closed")return json({ok:false,error:"Close the current contest first."},409);
 const max=Number(b.max_entries);if(!Number.isInteger(max)||max<3||max>30)return json({ok:false,error:"Entry limit must be 3–30."},400);
-const contest={id:crypto.randomUUID(),title:String(b.title||"HUGS Art Spotlight").trim().slice(0,120),max_entries:max,entries:[],status:"draft",created_at:new Date().toISOString(),winners:null};
+const contest={id:crypto.randomUUID(),title:String(b.title||"HL Art Gallery Spotlight").trim().slice(0,120),max_entries:max,entries:[],status:"draft",created_at:new Date().toISOString(),winners:null};
 await store.setJSON(KEY,contest);return json({ok:true,contest});
 }
 if(!old)return json({ok:false,error:"Create a contest first."},404);

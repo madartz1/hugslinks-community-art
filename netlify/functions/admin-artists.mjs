@@ -17,7 +17,7 @@ async function publishSubmission(artist){
   const rec={
     id:work?.id||("ART-"+crypto.randomUUID().replaceAll("-","").slice(0,10).toUpperCase()),
     title:clean(artist.artwork_title,180)||"Untitled Artwork",
-    artist_name:clean(artist.artist_name||artist.full_name,180)||"HUGSLinks Artist",
+    artist_name:clean(artist.artist_name||artist.full_name,180)||"HL Art Gallery Artist",
     collection:"Community Gallery",
     image_url:"/.netlify/functions/art-image?id="+encodeURIComponent(artist.artwork_image_id),
     description:clean(artist.artist_statement,1800),
