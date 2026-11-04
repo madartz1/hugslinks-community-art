@@ -1,6 +1,6 @@
 # Black Gold collection proposals
 
-Status: artist review pending. These are AI-assisted digital artworks made with the artist's direction using the built-in image-generation tool. No print edition or contest entry has been created. Existing community approval controls remain separate from this editorial preview.
+Status: artist review pending. These are AI-assisted digital artworks made with the artist's direction using the built-in image-generation tool. No print edition or contest entry has been created. The three proposals now join the existing authenticated artist review queue. Approve & publish controls their presence in the public gallery API and collection slides. Hold and Decline unpublish an existing gallery record. The earlier generated-image preview assets remain accessible in prior deployments; this change gates public listings, not access to those previously shared files.
 
 Project assets (1122 × 1402 pixels each):
 - assets/swan-ascension.jpg
