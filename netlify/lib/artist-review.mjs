@@ -1,9 +1,11 @@
 import { mergeSwanProposals, swanProposal } from "./swan-proposals.mjs";
-export function createArtistReviewHandler(getStore, env=process.env){
+export function createArtistReviewHandler(getStore, env=()=>process.env){
 const STORE="hugs-artists",KEY="artists",GALLERY_STORE="hugs-art-gallery",GALLERY_KEY="gallery",headers={"Content-Type":"application/json; charset=utf-8","Cache-Control":"no-store, no-cache, must-revalidate"};
 const json=(b,s=200)=>new Response(JSON.stringify(b),{status:s,headers});
 const clean=(v,n=500)=>typeof v==="string"?v.trim().replace(/[\u0000-\u001F\u007F]/g,"").slice(0,n):"";
-function auth(r){const e=env.HUGS_ADMIN_TOKEN||"",h=r.headers.get("authorization")||"",s=h.toLowerCase().startsWith("bearer ")?h.slice(7).trim():"";return !!e&&!!s&&s===e}
+const trimToken=value=>String(value||'').replace(/^[\s\u200B]+|[\s\u200B]+$/g,'');
+function expectedToken(){return trimToken((typeof env==='function'?env():env).HUGS_ADMIN_TOKEN)}
+function auth(r){const e=expectedToken(),h=r.headers.get('authorization')||'',s=h.toLowerCase().startsWith('bearer ')?trimToken(h.slice(7)):'';return !!e&&!!s&&s===e}
 async function read(s){const x=await s.get(KEY,{type:"json",consistency:"strong"});return mergeSwanProposals(Array.isArray(x?.artists)?x.artists:Array.isArray(x)?x:[])}
 async function publishSubmission(artist){
   const proposal=swanProposal(artist.id);
@@ -34,7 +36,9 @@ async function publishSubmission(artist){
   return {work:rec};
 }
 return async request=>{
- if(!auth(request))return json({ok:false,error:"Unauthorized."},401);
+ if(request.method==='GET'&&new URL(request.url).searchParams.get('action')==='config')return json({ok:true,configured:!!expectedToken(),application:'HL Art Gallery'});
+ if(!expectedToken())return json({ok:false,error:'Admin access is not configured in this deployment. The site owner must enable HUGS_ADMIN_TOKEN for Functions and redeploy.'},503);
+ if(!auth(request))return json({ok:false,error:'The admin token was not accepted for this HL Art Gallery deployment.'},401);
  try{
   const store=getStore(STORE),artists=await read(store);
   if(request.method==="GET"){artists.sort((a,b)=>(Date.parse(b.created_at)||0)-(Date.parse(a.created_at)||0));return json({ok:true,artists})}
