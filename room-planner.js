@@ -1,0 +1,34 @@
+(()=>{
+const $=id=>document.getElementById(id),stage=$('plannerStage'),room=$('personalRoom'),art=$('placedArt'),artImage=$('plannerArtwork');
+const works={'archive-eye':{title:'Swan — The Eye',src:'assets/swan-eye.jpg',ratio:36/43},'archive-horizon':{title:'Golden Horizon',src:'assets/golden-horizon.jpg',ratio:null}};
+let work='archive-eye',photoURL=null,points=[],marking=false,scale=null,drag=null,readGeneration=0;
+const q=new URLSearchParams(location.search).get('artwork');if(Object.hasOwn(works,q))work=q;$('plannerWork').value=work;
+const position={x:50,y:42};
+function status(text){$('plannerStatus').textContent=text}
+function line(){const el=$('measurementLine');el.hidden=!points.length;if(!points.length)return;const a=points[0],b=points[1]||a,r=stage.getBoundingClientRect(),dx=(b.x-a.x)*r.width,dy=(b.y-a.y)*r.height;Object.assign(el.style,{left:a.x*100+'%',top:a.y*100+'%',width:Math.hypot(dx,dy)+'px',transform:'rotate('+Math.atan2(dy,dx)+'rad)'});}
+function render(){const ratio=works[work].ratio||1.25,w=Number($('printWidth').value),h=w/ratio,rounded=n=>Math.round(n*10)/10;const label=rounded(w)+' × '+rounded(h)+' in';$('printDimensions').textContent=label+' · artwork only';$('sizeBadge').textContent=label+(scale?' · estimated scale':' · unscaled');$('plannerPrintLink').href='buy-print.html?artwork='+encodeURIComponent(work);if(!photoURL)return;
+ if(room.naturalWidth&&room.naturalHeight)stage.style.maxWidth=Math.min(stage.parentElement.clientWidth,window.innerHeight*.65*room.naturalWidth/room.naturalHeight)+'px';
+ const r=stage.getBoundingClientRect();if(!r.width||!r.height)return;const wanted=scale?w*scale: r.width*.3,width=Math.min(wanted,r.width,r.height*ratio),height=width/ratio;
+ Object.assign(art.style,{width:width+'px',left:(r.width-width)*position.x/100+'px',top:(r.height-height)*position.y/100+'px'});
+ $('scaleStatus').textContent=scale?(wanted>width+.5?'Selected size exceeds this photo’s visible area. Shown smaller to fit; choose a smaller size or wider photo.':'Estimated scale applied from your wall measurement.'):'Scale not set — free placement preview.';line();
+}
+function setWork(){work=$('plannerWork').value;artImage.alt=works[work].title+' by Swan the Artist';artImage.src=works[work].src;render()}
+artImage.onload=()=>{if(work==='archive-horizon')works[work].ratio=artImage.naturalWidth/artImage.naturalHeight;render()};artImage.onerror=()=>status('Artwork could not load. Try the other artwork.');
+function enable(value){for(const id of ['startMeasure','removeRoom','artX','artY','centerArt'])$(id).disabled=!value;}
+function clearScale(){scale=null;points=[];marking=false;stage.classList.remove('measuring');$('applyMeasure').disabled=true;line();$('startMeasure').textContent='Mark two wall points'}
+function remove(){readGeneration++;if(photoURL)URL.revokeObjectURL(photoURL);photoURL=null;stage.style.maxWidth='';room.removeAttribute('src');room.hidden=true;art.hidden=true;$('emptyRoom').hidden=false;$('roomUpload').value='';clearScale();enable(false);$('scaleStatus').textContent='Scale not set — free placement preview.';status('Your photo stays in this browser tab. It is not uploaded or saved.')}
+$('roomUpload').onchange=()=>{const f=$('roomUpload').files[0];if(!f)return;if(f.size>20*1024*1024||!['image/jpeg','image/png','image/webp'].includes(f.type)){status('Choose a JPG, PNG or WebP photo smaller than 20 MB.');$('roomUpload').value='';return;}const url=URL.createObjectURL(f),generation=++readGeneration,img=new Image();img.onload=()=>{if(generation!==readGeneration){URL.revokeObjectURL(url);return}if(photoURL)URL.revokeObjectURL(photoURL);photoURL=url;clearScale();room.onload=()=>{render();status('Photo ready. Mark two wall points to estimate size, or drag the artwork to try a placement.')};room.src=url;room.hidden=false;art.hidden=false;$('emptyRoom').hidden=true;enable(true);position.x=50;position.y=42;$('artX').value=50;$('artY').value=42;render()};img.onerror=()=>{URL.revokeObjectURL(url);if(generation===readGeneration)status('This photo could not open. Export it as JPG or PNG and try again.')};img.src=url};
+$('removeRoom').onclick=remove;$('plannerWork').onchange=setWork;$('printWidth').onchange=render;
+$('startMeasure').onclick=()=>{clearScale();marking=true;stage.classList.add('measuring');$('startMeasure').textContent='Marking wall…';status('Tap the first wall point, then a second point at the same height. Enter the real distance between them.');render()};
+stage.addEventListener('click',e=>{if(!marking)return;const r=stage.getBoundingClientRect(),p={x:Math.max(0,Math.min(1,(e.clientX-r.left)/r.width)),y:Math.max(0,Math.min(1,(e.clientY-r.top)/r.height))};if(points.length===1){p.y=points[0].y;if(Math.abs(p.x-points[0].x)<.05){status('Choose points farther apart for a more useful measurement.');return}}points.push(p);line();if(points.length===2){marking=false;stage.classList.remove('measuring');$('applyMeasure').disabled=false;$('startMeasure').textContent='Mark wall points again';status('Points marked. Enter the distance in inches, then apply the measurement.')}});
+$('applyMeasure').onclick=()=>{const inches=Number($('referenceInches').value);if(points.length!==2||!Number.isFinite(inches)||inches<1||inches>600){status('Enter a distance between 1 and 600 inches.');return}scale=Math.abs(points[1].x-points[0].x)*stage.getBoundingClientRect().width/inches;render();status('Scale estimated. Compare widths and move the artwork using drag or the sliders.')};
+$('referenceInches').oninput=()=>{if(scale){scale=null;render();status('Measurement changed. Apply it again to update the scale.')}};
+for(const [id,key]of [['artX','x'],['artY','y']])$(id).oninput=()=>{position[key]=Number($(id).value);render()};
+$('centerArt').onclick=()=>{position.x=50;position.y=50;$('artX').value=50;$('artY').value=50;render()};
+art.addEventListener('pointerdown',e=>{if(marking||e.button!==0)return;e.preventDefault();art.setPointerCapture(e.pointerId);drag={id:e.pointerId,x:e.clientX,y:e.clientY,left:art.offsetLeft,top:art.offsetTop}});
+art.addEventListener('pointermove',e=>{if(!drag||drag.id!==e.pointerId)return;const availableX=stage.clientWidth-art.offsetWidth,availableY=stage.clientHeight-art.offsetHeight;position.x=availableX>0?Math.max(0,Math.min(100,(drag.left+e.clientX-drag.x)/availableX*100)):50;position.y=availableY>0?Math.max(0,Math.min(100,(drag.top+e.clientY-drag.y)/availableY*100)):50;$('artX').value=position.x;$('artY').value=position.y;render()});
+for(const event of ['pointerup','pointercancel','lostpointercapture'])art.addEventListener(event,()=>drag=null);
+window.addEventListener('resize',render);
+new ResizeObserver(()=>{if(scale&&points.length===2){const inches=Number($('referenceInches').value);scale=Math.abs(points[1].x-points[0].x)*stage.getBoundingClientRect().width/inches}render()}).observe(stage);
+setWork();
+})();

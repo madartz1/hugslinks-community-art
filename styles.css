@@ -84,7 +84,7 @@ img{
 
 
 /* =========================================
-   HUGSLINKS WORDMARK
+   HL ART GALLERY WORDMARK
    PREMIUM CONNECTION CURRENT
 ========================================= */
 
@@ -792,7 +792,7 @@ textarea{
 
 
 /* =========================================
-   HUG ENVELOPE CTA
+   support ENVELOPE CTA
 ========================================= */
 
 .hug-envelope-cta{
@@ -1207,7 +1207,7 @@ textarea{
 }
 
 
-/* HUGS mobile navigation — compact, readable dropdown */
+/* HL Art Gallery mobile navigation — compact, readable dropdown */
 @media(max-width:900px){
   .topbar{overflow:visible}
   .nav{position:relative;grid-template-columns:1fr auto;padding:10px 16px 12px;gap:10px 14px}
@@ -1251,7 +1251,7 @@ textarea{
 }
 
 
-/* HUGS header depth — launch polish */
+/* HL Art Gallery header depth — launch polish */
 .topbar .brand{
   box-shadow:
     inset 0 0 7px rgba(114,207,255,.08),
