@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import Stripe from 'stripe';
 import {handlePayments,signQuote,readQuote,PRICE} from '../netlify/lib/print-payments.mjs';
-const url='https://deploy-preview-1--hl-art-gallery.netlify.app/.netlify/functions/art-print-payments';
+const url='https://deploy-preview-1--hugslinks-community-art.netlify.app/.netlify/functions/art-print-payments';
 const env={STRIPE_SECRET_KEY:'sk_test_dummy',HUGS_PRINT_QUOTE_SECRET:'quote-secret',HUGS_PRINT_BRIDGE_PREVIEW_TOKEN:'bridge',HUGS_PRINT_CHECKOUT_ADMIN_TOKEN:'admin'};
 const ctx={deploy:{context:'deploy-preview',id:'test'}};
 const addr={first_name:'Test',last_name:'Buyer',address_1:'1 Test Street',city:'New York',state_code:'NY',zip_postal_code:'10001',phone:'2125550100'};
@@ -42,9 +42,9 @@ test('paid webhook verifies amounts, holds fulfillment and repeats idempotently'
  stripe.checkout.sessions.retrieve=async()=>({...good,amount_total:1});assert.equal((await invoke()).status,400);assert.equal(updates.length,2);
 });
 
-test('renamed gallery previews are accepted and the released former hostname is rejected',async()=>{
+test('restored gallery previews are accepted and the released temporary hostname is rejected',async()=>{
  const deps={...defaults,makeStripe:()=>({})};
  assert.equal((await handlePayments(req('config'),ctx,deps)).status,200);
- const old=new Request('https://deploy-preview-1--hugslinks-community-art.netlify.app/.netlify/functions/art-print-payments?action=config');
+ const old=new Request('https://deploy-preview-1--hl-art-gallery.netlify.app/.netlify/functions/art-print-payments?action=config');
  assert.equal((await handlePayments(old,ctx,deps)).status,400);
 });
