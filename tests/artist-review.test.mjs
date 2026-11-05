@@ -21,3 +21,5 @@ test('runtime credentials are read at request time and boundary whitespace is no
  env={HUGS_ADMIN_TOKEN:'  valid-token  '};assert.equal((await handler(new Request('https://gallery.example/admin',{headers:{Authorization:'Bearer valid-token'}}))).status,200);
  assert.equal((await handler(new Request('https://gallery.example/admin',{headers:{Authorization:'Bearer wrong-token'}}))).status,401);
 });
+
+test('reapproval preserves original publication date and the approved biography',async()=>{const f=fixture();await f.request({action:'approve-publish',artist_id:id});const gallery=f.data.get('hugs-art-gallery:gallery');const first=gallery.works[0].published_at;gallery.works[0].artist_bio='An approved artist biography.';await f.request({action:'hold-artist',artist_id:id});await f.request({action:'approve-publish',artist_id:id});const work=f.data.get('hugs-art-gallery:gallery').works[0];assert.equal(work.published_at,first);assert.equal(work.artist_bio,'An approved artist biography.')});

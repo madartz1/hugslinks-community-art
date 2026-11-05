@@ -1,0 +1,3 @@
+export function validPublicationDate(value){if(typeof value!=='string'||!value.trim()||!Number.isFinite(Date.parse(value)))return null;return new Date(value).toISOString()}
+export function sortPublicationDate(works){return [...works].sort((a,b)=>{const ap=validPublicationDate(a.published_at),bp=validPublicationDate(b.published_at);if(ap&&bp)return Date.parse(bp)-Date.parse(ap);if(ap)return -1;if(bp)return 1;return (Date.parse(b.updated_at)||0)-(Date.parse(a.updated_at)||0)})}
+export function publicationLabel(work){const date=validPublicationDate(work.published_at);return date?'Published '+new Date(date).toLocaleDateString(undefined,{year:'numeric',month:'short',day:'numeric'}):'Publication date not recorded'}

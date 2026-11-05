@@ -1,0 +1,22 @@
+/* Private artist tools share the blue-to-warm gallery palette. */
+.artist-dash .dash-head{background:linear-gradient(120deg,#17394d,#315f7b)}
+.artist-dash .dash-panel,.apply-form{background:#fffdf8;border-color:#d6dedf}
+.artist-dash .dash-panel button,.apply-form .btn.primary{background:#315f7b;color:white;min-height:46px}
+.artist-dash .dash-panel select{width:100%;font:inherit;font-size:16px;padding:14px;border:1px solid #aebfc8;border-radius:12px;background:#fff;color:#17394d}
+.artist-dash input,.artist-dash textarea,.apply-form input,.apply-form textarea,.apply-form select{font-size:16px!important}
+.artist-dash .dash-panel .quiet{background:#e8eff2;color:#17394d;margin:0}
+.studio-work{display:grid;grid-template-columns:minmax(120px,210px) minmax(0,1fr);gap:24px;margin:26px 0}
+.studio-work img{width:100%;max-height:300px;object-fit:contain;background:#edf1f1;border:8px solid #17394d;outline:1px solid #c5a56b;border-radius:3px}
+.studio-work h3{font:26px Georgia,serif;color:#17394d;margin:0 0 18px;overflow-wrap:anywhere}
+.studio-facts{display:grid;grid-template-columns:auto minmax(0,1fr);gap:12px 18px;font-size:14px;margin:0;line-height:1.5}
+.studio-facts dt{font-weight:750;color:#31566b}.studio-facts dd{margin:0;overflow-wrap:anywhere;color:#17394d}
+.studio-work:has(img[hidden]){grid-template-columns:1fr}
+.workflow-error{padding:16px;border:1px solid #ac6560;background:#fff4f1;color:#783c36;border-radius:12px;line-height:1.6;scroll-margin-top:150px}
+.artist-dash [hidden],.apply-form [hidden]{display:none!important}
+.apply-form .success{scroll-margin-top:150px;line-height:1.7;overflow-wrap:anywhere}
+.workflow-actions{display:flex;flex-wrap:wrap;align-items:center;gap:16px;margin-top:16px}
+.workflow-actions button{font:inherit;border:1px solid #315f7b;background:#fff;color:#17394d;border-radius:9px;padding:12px;min-height:44px;cursor:pointer}
+.artist-dash :is(button,a,input,textarea,select):focus-visible,.apply-form :is(button,a,input,textarea,select):focus-visible{outline:3px solid #b58e45;outline-offset:3px}
+.artist-dash button:disabled,.apply-form button:disabled{cursor:wait}
+@media(max-width:600px){.studio-work{grid-template-columns:1fr;gap:20px}.studio-work img{max-width:210px;margin:auto}.studio-facts{grid-template-columns:1fr;gap:4px}.studio-facts dd{margin-bottom:10px}.artist-dash{padding:0 12px}.artist-dash .dash-panel{padding:20px}.artist-dash .dash-head{padding:25px}.workflow-actions>*{min-height:44px}.artist-dash,.artist-apply{padding-bottom:calc(110px + env(safe-area-inset-bottom))}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto!important}}
