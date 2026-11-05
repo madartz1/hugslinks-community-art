@@ -29,7 +29,7 @@ export async function handlePayments(request,context,{env=process.env,fetcher=fe
  if(!/^(sk|rk)_test_/.test(key||'')||!secret||!env.HUGS_PRINT_BRIDGE_PREVIEW_TOKEN)return json({enabled:false,testOnly:true,error:!key?'Stripe sandbox key is missing':!/^(sk|rk)_test_/.test(key)?(/^(sk|rk)_live_/.test(key)?'A live Stripe key was saved; replace it with a sandbox test key':/^pk_/.test(key)?'A publishable Stripe key was saved; use a sandbox secret key':'Saved Stripe key is not a recognized sandbox secret key'):!secret?'Quote signing secret is missing':'Supplier bridge is not configured'},503);
  const stripe=makeStripe(key),store=makeStore();
  const origin=new URL(request.url).origin;
- if(!/^https:\/\/(?:[a-z0-9-]+--)?hugslinks-community-art\.netlify\.app$/.test(origin))return json({error:'Unsupported preview host'},400);
+ if(!/^https:\/\/(?:[a-z0-9-]+--)?hl-art-gallery\.netlify\.app$/.test(origin))return json({error:'Unsupported preview host'},400);
  if(!['config','status'].includes(action)&&request.method!=='POST')return json({error:'Method not allowed'},405);
  if(request.method==='POST'&&action!=='webhook'&&request.headers.get('origin')&&request.headers.get('origin')!==origin)return json({error:'Invalid origin'},403);
  try{
