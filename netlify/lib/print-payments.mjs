@@ -80,5 +80,8 @@ export async function handlePayments(request,context,{env=process.env,fetcher=fe
    return json({testOnly:true,url:session.url});
   }
   return json({error:'Unsupported action'},400);
- }catch{return json({error:'Sandbox payment service unavailable. Please try again.',testOnly:true},502)}
+ }catch(e){
+  const setupError=action==='setup'&&equal(request.headers.get('x-hugs-checkout-admin'),env.HUGS_PRINT_CHECKOUT_ADMIN_TOKEN)?(/webhook/i.test(e.message||'')&&/maximum|more than|limit|too many/i.test(e.message||'')?'webhook-endpoint-limit':e.type==='StripeAuthenticationError'?'stripe-authentication':e.type==='StripePermissionError'?'stripe-permission':e.type==='StripeConnectionError'?'stripe-connection':'setup-failed'):undefined;
+  return json({error:'Sandbox payment service unavailable. Please try again.',testOnly:true,...(setupError?{setupError}:{})},502)
+ }
 }
