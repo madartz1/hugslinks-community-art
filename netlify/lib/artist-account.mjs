@@ -1,5 +1,17 @@
 import {swanProposal} from "./swan-proposals.mjs";
 const reply=(body,status=200,headers={})=>new Response(JSON.stringify(body),{status,headers:{'Content-Type':'application/json','Cache-Control':'no-store','X-Content-Type-Options':'nosniff',...headers}});
+export async function artistMailFailure(response){
+ let detail={};try{detail=await response.json()}catch{}
+ const text=typeof detail?.message==='string'?detail.message:'';
+ let code='MAIL_REJECTED',message='The email provider could not send your link. Please contact the gallery.';
+ if(response.status===401||/invalid.{0,20}api.{0,5}key|api.{0,5}key.{0,20}invalid/i.test(text)){code='MAIL_KEY_INVALID';message='The gallery email provider rejected its API key. The site owner needs to update the email configuration.'}
+ else if(/only send testing emails|testing.{0,30}own email/i.test(text)){code='MAIL_TEST_RESTRICTION';message='The gallery email provider is restricted to testing recipients. The site owner needs to enable a verified sending domain.'}
+ else if(/domain.{0,80}not verified|verify.{0,20}(sending )?domain/i.test(text)){code='MAIL_SENDER_UNVERIFIED';message='The gallery sending domain is not verified with the email provider. The site owner needs to verify it.'}
+ else if(response.status===403){code='MAIL_PERMISSION';message='The email provider blocked this send. The site owner needs to check the sending key permissions and verified domain.'}
+ else if(response.status===429){code='MAIL_RATE_LIMIT';message='The email provider is temporarily limiting sends. Please try again later.'}
+ else if(response.status>=500){code='MAIL_PROVIDER_UNAVAILABLE';message='The email provider is temporarily unavailable. Please try again later.'}
+ return {code,message};
+}
 const enc=new TextEncoder(),base=b=>btoa(String.fromCharCode(...new Uint8Array(b))).replace(/=/g,'').replace(/\+/g,'-').replace(/\//g,'_');
 const clean=(v,n)=>typeof v==='string'?v.trim().replace(/[\u0000-\u001f\u007f]/g,'').slice(0,n):'';
 const generic='If this email has an artist submission, a sign-in link will arrive shortly. Check your inbox and spam folder.';
@@ -35,7 +47,7 @@ export function createArtistAccountHandler({getStore,env=()=>process.env,fetcher
     if(person){const token=base(random()),key=await digest(token);await limiter.setJSON(key,{id:person.id,email:emailOf(person),expires:now()+15*60000,used:false});
      const link=url.origin+'/artist-dashboard.html?login='+encodeURIComponent(token);
      const sent=await fetcher('https://api.resend.com/emails',{method:'POST',headers:{Authorization:'Bearer '+c.HUGS_VOTER_RESEND_API_KEY,'Content-Type':'application/json'},body:JSON.stringify({from:c.HUGS_VOTER_FROM_EMAIL,to:[email],subject:'Your HL Art Gallery sign-in link',text:'Open this private sign-in link within 15 minutes: '+link+'\nIf you did not request it, ignore this email.'})});
-     if(!sent.ok){console.warn('Artist sign-in delivery rejected',{status:sent.status});return reply({ok:false,error:'Sign-in email is temporarily unavailable. Please try again in a minute or contact the gallery.'},503)}
+     if(!sent.ok){const failure=await artistMailFailure(sent);console.warn('Artist sign-in delivery rejected',{status:sent.status,reference:failure.code});return reply({ok:false,error:failure.message,reference:failure.code},503)}
      console.info('Artist sign-in delivery accepted');
     }
     return reply({ok:true,message:generic,retry_after:60});

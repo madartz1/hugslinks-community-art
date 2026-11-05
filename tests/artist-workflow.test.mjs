@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createArtistAccountHandler} from '../netlify/lib/artist-account.mjs';
+import {createArtistAccountHandler,artistMailFailure} from '../netlify/lib/artist-account.mjs';
 import {createArtistSubmissionHandler} from '../netlify/lib/artist-submission.mjs';
 import {createArtistReviewHandler} from '../netlify/lib/artist-review.mjs';
 import {mergeSwanProposals} from '../netlify/lib/swan-proposals.mjs';
@@ -87,4 +87,8 @@ test('artist names and lookalike IDs cannot claim collection ownership; explicit
 });
 test('changing assigned ownership invalidates old email links and sessions',async()=>{
  const f=fixture();f.env.HL_SWAN_ARTIST_EMAIL='owner@example.com';await seedCollection(f);const cookie=await f.login('owner@example.com');f.advance(60001);await f.call('request',{email:'owner@example.com'});const token=new URL(f.mail.at(-1).text.match(/https:\/\/\S+/)[0]).searchParams.get('login');f.env.HL_SWAN_ARTIST_EMAIL='new-owner@example.com';assert.equal((await f.call('verify',{token})).status,401);assert.equal((await f.call('',undefined,cookie)).status,401);
+});
+
+test('delivery diagnostics distinguish actionable failures without returning upstream messages or private recipients',async()=>{
+ for(const [status,message,code] of [[401,'API key is invalid. PRIVATE','MAIL_KEY_INVALID'],[403,'You can only send testing emails to your own email address (private@example.com).','MAIL_TEST_RESTRICTION'],[403,'The example.com domain is not verified. PRIVATE','MAIL_SENDER_UNVERIFIED'],[403,'PRIVATE','MAIL_PERMISSION'],[429,'PRIVATE','MAIL_RATE_LIMIT'],[500,'PRIVATE','MAIL_PROVIDER_UNAVAILABLE'],[400,'PRIVATE','MAIL_REJECTED']]){const result=await artistMailFailure(new Response(JSON.stringify({message}),{status}));assert.equal(result.code,code);assert(!JSON.stringify(result).includes('PRIVATE'));assert(!JSON.stringify(result).includes('private@example.com'))}
 });
