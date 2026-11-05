@@ -74,7 +74,7 @@
 
     document.getElementById('gallerySearch').addEventListener('input',event=>{searchText=event.target.value.trim().toLowerCase();currentPage=1;renderGallery()});
     document.getElementById('mediumFilter').addEventListener('change',e=>{mediumFilter=e.target.value;currentPage=1;renderGallery()});document.getElementById('gallerySort').addEventListener('change',e=>{gallerySort=e.target.value;currentPage=1;renderGallery()});
-    loadGallery();setInterval(refreshLiveCounts,15000);
+    loadGallery().then(()=>{const id=new URL(location.href).searchParams.get('artwork');if(!id)return;const work=allWorks.find(w=>w.id===id);if(work){const i=filteredWorks().findIndex(w=>w.id===id);currentPage=Math.floor(Math.max(0,i)/pageSize)+1;renderGallery();viewArtwork(work)}else announce('This artwork is not currently published. Browse the approved gallery below.')});setInterval(refreshLiveCounts,15000);
   </script>
 <script src="art-app.js"></script><script src="competition.js" defer></script></body>
 </html>
