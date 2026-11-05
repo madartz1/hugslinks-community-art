@@ -38,7 +38,16 @@ export async function handlePayments(request,context,{env=process.env,fetcher=fe
   if(action==='setup'){
    if(!equal(request.headers.get('x-hugs-checkout-admin'),env.HUGS_PRINT_CHECKOUT_ADMIN_TOKEN))return json({error:'Unauthorized'},401);
    if(webhook?.secret)return json({ok:true,testOnly:true,webhookReady:true});
-   const hook=await stripe.webhookEndpoints.create({url:origin+'/.netlify/functions/art-print-payments?action=webhook',enabled_events:['checkout.session.completed','checkout.session.async_payment_succeeded','checkout.session.async_payment_failed'],metadata:{integration:'hugs-art-print-sandbox',deploy:context.deploy.id||'preview'}});
+   const hookConfig={url:origin+'/.netlify/functions/art-print-payments?action=webhook',enabled_events:['checkout.session.completed','checkout.session.async_payment_succeeded','checkout.session.async_payment_failed'],metadata:{integration:'hugs-art-print-sandbox',deploy:context.deploy.id||'preview'}};
+   let hook;
+   try{hook=await stripe.webhookEndpoints.create(hookConfig)}catch(e){
+    if(!/webhook/i.test(e.message||'')||!/maximum|more than|limit|too many/i.test(e.message||''))throw e;
+    const endpoints=await stripe.webhookEndpoints.list({limit:100});
+    const obsolete=endpoints.data.find(x=>x.livemode===false&&x.metadata?.integration==='hugs-art-print-sandbox'&&/^https:\/\/(?:[a-z0-9-]+--)?hl-art-gallery\.netlify\.app\/\.netlify\/functions\/art-print-payments\?action=webhook$/.test(x.url));
+    if(!obsolete)throw e;
+    await stripe.webhookEndpoints.del(obsolete.id);
+    hook=await stripe.webhookEndpoints.create(hookConfig);
+   }
    try{await store.setJSON('webhook',{secret:hook.secret,id:hook.id})}catch(e){await stripe.webhookEndpoints.del(hook.id);throw e}
    return json({ok:true,testOnly:true,webhookReady:true});
   }

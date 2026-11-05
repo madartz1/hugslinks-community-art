@@ -48,3 +48,18 @@ test('restored gallery previews are accepted and the released temporary hostname
  const old=new Request('https://deploy-preview-1--hl-art-gallery.netlify.app/.netlify/functions/art-print-payments?action=config');
  assert.equal((await handlePayments(old,ctx,deps)).status,400);
 });
+
+test('setup recovers endpoint capacity only from abandoned gallery sandbox connections',async()=>{
+ let created=0,deleted=[],saved;
+ const unrelated={id:'other',livemode:false,metadata:{integration:'other'},url:'https://old.example/webhook'};
+ const obsolete={id:'obsolete',livemode:false,metadata:{integration:'hugs-art-print-sandbox'},url:'https://old--hl-art-gallery.netlify.app/.netlify/functions/art-print-payments?action=webhook'};
+ const stripe={webhookEndpoints:{create:async()=>{if(++created===1)throw Error('You cannot have more than 16 webhook endpoints');return {id:'new',secret:'whsec_new'}},list:async()=>({data:[unrelated,{...obsolete,id:'live',livemode:true},obsolete]}),del:async id=>deleted.push(id)}};
+ const result=await handlePayments(req('setup',{}, {'x-hugs-checkout-admin':'admin'}),ctx,{...defaults,makeStripe:()=>stripe,makeStore:()=>({get:async()=>null,setJSON:async(k,v)=>{saved=v}})});
+ assert.equal(result.status,200);assert.deepEqual(deleted,['obsolete']);assert.equal(saved.secret,'whsec_new');
+});
+test('setup leaves unrelated webhooks intact when the sandbox limit is reached',async()=>{
+ let deletes=0;
+ const stripe={webhookEndpoints:{create:async()=>{throw Error('Too many webhook endpoints')},list:async()=>({data:[{id:'other',livemode:false,metadata:{integration:'other'},url:'https://old--hl-art-gallery.netlify.app/.netlify/functions/art-print-payments?action=webhook'}]}),del:async()=>deletes++}};
+ const result=await handlePayments(req('setup',{}, {'x-hugs-checkout-admin':'admin'}),ctx,{...defaults,makeStripe:()=>stripe,makeStore:()=>({get:async()=>null})});
+ assert.equal(result.status,502);assert.equal(deletes,0);assert.equal((await result.json()).setupError,'webhook-endpoint-limit');
+});
