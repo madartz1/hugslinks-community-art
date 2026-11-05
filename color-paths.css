@@ -60,3 +60,7 @@ body.hl-theme[data-art-surface="admin"]{background:linear-gradient(145deg,#edf3f
 .hl-theme .archive-hero{background:linear-gradient(120deg,#17394d,#455858)}
 .hl-theme .room-picker button{background:#f1e7d2;color:var(--hl-navy);border-color:#c5a56b}
 .hl-theme .room-picker button[aria-pressed="true"]{background:var(--hl-navy);color:#fff}
+/* Keep copy readable on both the pale introductory surfaces and dark panels. */
+.hl-theme :is(.hero,.page-hero,.social-hero)>:is(p,span,small),.hl-theme :is(.hero,.page-hero) .eyebrow{color:var(--hl-muted)}
+.hl-theme :is(.app-feature,.art-app-banner,.art-podium) :is(h1,h2,h3){color:#fff8e9}
+.hl-theme .social-hero p,.hl-theme .social-hero span{color:var(--hl-muted)}
