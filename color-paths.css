@@ -64,3 +64,4 @@ body.hl-theme[data-art-surface="admin"]{background:linear-gradient(145deg,#edf3f
 .hl-theme :is(.hero,.page-hero,.social-hero)>:is(p,span,small),.hl-theme :is(.hero,.page-hero) .eyebrow{color:var(--hl-muted)}
 .hl-theme :is(.app-feature,.art-app-banner,.art-podium) :is(h1,h2,h3){color:#fff8e9}
 .hl-theme .social-hero p,.hl-theme .social-hero span{color:var(--hl-muted)}
+.hl-theme .live-vote-box{background:linear-gradient(120deg,#17394d,#455858);border-color:#c5a56b;box-shadow:0 12px 32px #17394d18}
