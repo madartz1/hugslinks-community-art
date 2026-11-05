@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {createArtistAccountHandler} from '../netlify/lib/artist-account.mjs';
 import {createArtistSubmissionHandler} from '../netlify/lib/artist-submission.mjs';
 import {createArtistReviewHandler} from '../netlify/lib/artist-review.mjs';
+import {mergeSwanProposals} from '../netlify/lib/swan-proposals.mjs';
 import {createPublicGalleryHandler} from '../netlify/lib/public-gallery.mjs';
 
 // Only in-memory stores and a captured mail transport. These tests cannot contact a live service.
@@ -72,4 +73,18 @@ test('invalid origin, rights, request id and image files never enter the review 
 });
 test('biography changes stay with their selected submission and reject invalid lengths',async()=>{
  const f=fixture(),a=await(await upload(f)).json(),b=await(await upload(f)).json(),cookie=await f.login();assert.equal((await f.call('profile',{artist_id:a.artist_id,bio:'short'},cookie)).status,400);assert.equal((await f.call('profile',{artist_id:a.artist_id,bio:'x'.repeat(801)},cookie)).status,400);assert.equal((await f.call('profile',{artist_id:a.artist_id,bio:'An original biography for the first submission.'},cookie)).status,200);const records=(await f.getStore('hugs-artists').get('artists')).artists;assert.equal(records.find(x=>x.id===a.artist_id).profile_review_status,'Pending Review');assert.equal(records.find(x=>x.id===b.artist_id).proposed_bio,undefined);
+});
+
+// Existing collection records are linked only through private owner configuration, never artist name matching.
+async function seedCollection(f){const records=mergeSwanProposals([]).map(a=>({...a,status:'Approved'}));await f.getStore('hugs-artists').setJSON('artists',{artists:records});await f.getStore('hugs-art-gallery').setJSON('gallery',{works:records.map(a=>({id:a.artwork_id,published:true,source_artist_submission_id:a.id,image_url:a.preview_image_url}))});return records}
+test('configured owner can sign in to the existing Swan collection without resubmission or public email exposure',async()=>{
+ const f=fixture();f.env.HL_SWAN_ARTIST_EMAIL=' OWNER@example.com ';await seedCollection(f);const cookie=await f.login('owner@example.com'),studio=await(await f.call('',undefined,cookie)).json();assert.equal(studio.submissions.length,3);assert(studio.submissions.every(a=>a.status==='Approved'&&a.published));assert(!JSON.stringify(studio).includes('owner@example.com'));assert(!(await(await f.call('config')).text()).includes('owner@example.com'));assert.equal((await publicWorks(f)).length,3);
+ assert.equal((await f.call('profile',{artist_id:'SWAN-PROPOSAL-stillwater',bio:'A biography for this existing collection artwork.'},cookie)).status,200);assert.equal((await f.getStore('hugs-artists').get('artists')).artists.length,3);
+});
+test('artist names and lookalike IDs cannot claim collection ownership; explicit record owners are preserved',async()=>{
+ const f=fixture();await seedCollection(f);await f.call('request',{email:'owner@example.com'});assert.equal(f.mail.length,0);f.advance(60001);f.env.HL_SWAN_ARTIST_EMAIL='owner@example.com';const data=await f.getStore('hugs-artists').get('artists');data.artists.push({id:'SWAN-PROPOSAL-fake',source:'swan-collection-proposal',artist_name:'Swan the Artist'},{id:'OTHER-SWAN',artist_name:'Swan the Artist'});data.artists.find(a=>a.id==='SWAN-PROPOSAL-ascension').email='different@example.com';await f.getStore('hugs-artists').setJSON('artists',data);
+ const cookie=await f.login('owner@example.com'),studio=await(await f.call('',undefined,cookie)).json();assert.equal(studio.submissions.length,2);assert(!studio.submissions.some(a=>a.id==='SWAN-PROPOSAL-ascension'));assert.equal((await f.call('submission=SWAN-PROPOSAL-fake',undefined,cookie)).status,404);
+});
+test('changing assigned ownership invalidates old email links and sessions',async()=>{
+ const f=fixture();f.env.HL_SWAN_ARTIST_EMAIL='owner@example.com';await seedCollection(f);const cookie=await f.login('owner@example.com');f.advance(60001);await f.call('request',{email:'owner@example.com'});const token=new URL(f.mail.at(-1).text.match(/https:\/\/\S+/)[0]).searchParams.get('login');f.env.HL_SWAN_ARTIST_EMAIL='new-owner@example.com';assert.equal((await f.call('verify',{token})).status,401);assert.equal((await f.call('',undefined,cookie)).status,401);
 });

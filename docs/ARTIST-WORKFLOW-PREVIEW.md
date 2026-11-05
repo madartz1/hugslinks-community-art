@@ -17,3 +17,9 @@ The new workflow tests use only memory stores and a captured fake mail transport
 No real email is sent and no production/shared Blobs record is created by this test suite. Preview deployments still share the site's artist/gallery Blobs stores; do not create sample submissions there for QA. Existing admin review writes use the older read/write mechanism and are not made transactional by this change.
 
 Before release, the owner should verify actual inbox delivery and one real artwork submission in their normal browser, including an iPhone check. Automated fixture tests do not establish actual inbox delivery, image quality for printing, or physical device behavior. This change does not activate paid checkout or supplier fulfillment. Production publishing remains a separate release step.
+
+## Original Swan collection owner
+
+The original artist-directed proposals have no form-submission email. `HL_SWAN_ARTIST_EMAIL` privately assigns their artist login. Configure this as a secret with Functions scope in deploy-preview; production must be configured separately at release. The fallback applies only to the three catalog proposal IDs with their original source marker and no existing email. It does not match arbitrary artist display names and does not modify public gallery records or admin decisions. The recipient address is not included in public configuration or studio responses.
+
+Email tokens and sessions bind both the submission ID and its current resolved owner email. Changing ownership invalidates old links and sessions. Earlier studio cookies must sign in again after this update. Delivery logs record only acceptance or the provider HTTP status, never email addresses, tokens, links, or upstream response bodies.
