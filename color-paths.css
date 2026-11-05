@@ -1,0 +1,66 @@
+/* One HL palette. Exhibition destinations carry the same champagne cue
+   from their source links through their landing surfaces and controls. */
+:root{
+ --hl-navy:#17394d;--hl-navy-hover:#244f65;--hl-blue:#315f7b;
+ --hl-ivory:#f8f5ee;--hl-paper:#fffdf8;--hl-mist:#edf3f6;
+ --hl-gold:#e5d0a3;--hl-gold-hover:#eedfbd;--hl-gold-ink:#705522;
+ --hl-line:#d6dedf;--hl-muted:#526775;
+ --navy:var(--hl-navy);--blue:var(--hl-blue);--sky:#bed7e5;
+ --cream:var(--hl-ivory);--gold:#c5a56b;--ink:#183547;
+ --line:var(--hl-line);--app-bg:var(--hl-mist);--app-ink:#183547;
+ --app-accent:var(--hl-blue);--hugs-electric:#bed7e5;
+ --hugs-electric-deep:var(--hl-blue);--hugs-energy-gold:var(--hl-gold);
+}
+body.hl-theme{color:#183547;background:linear-gradient(155deg,#edf3f6 0%,#f7f8f6 36%,#f8f5ee 78%);background-attachment:fixed}
+body.hl-theme[data-art-surface="exhibition"]{background:linear-gradient(150deg,#edf3f6 0%,#f8f5ee 35%,#f4efe5 100%)}
+body.hl-theme[data-art-surface="admin"]{background:linear-gradient(145deg,#edf3f6,#f8f5ee 75%)}
+.hl-theme :is(.topbar,body>header,.planner-header,.access-nav){background:linear-gradient(110deg,#f8fbfc 0%,#faf8f2 100%);border-bottom-color:var(--hl-line)}
+.hl-theme .topbar{background:linear-gradient(110deg,#f8fbfcf5,#faf8f2f5)}
+.hl-theme :is(.brand,.topbar .brand){color:var(--hl-navy);background:transparent;border-color:transparent;box-shadow:none;text-shadow:none}
+.hl-theme .brand::before,.hl-theme .brand::after{display:none}
+.hl-theme :is(.navlinks a,header nav a){border-radius:9px;transition:background .18s,color .18s,box-shadow .18s}
+.hl-theme .navlinks a:hover,.hl-theme .navlinks a[aria-current="page"]{background:#e5edf1;transform:none}
+.hl-theme :is(.hero,.page-hero,.social-hero){background:linear-gradient(120deg,#e9f2f7 0%,#f7f8f5 54%,#f3ebdc 100%)}
+.hl-theme :is(.hero,.page-hero,.social-hero) :is(h1,h2){color:var(--hl-navy)}
+.hl-theme :is(.app-feature,.art-app-banner,.art-podium){background:linear-gradient(120deg,#17394d,#294c60 68%,#455858);box-shadow:0 12px 32px #17394d18}
+.hl-theme :is(.card,.feed-item,.feed-sidebar,.archive-card,.artist-cta,.new-artist-card,.competition-entry){border-color:var(--hl-line);background:var(--hl-paper)}
+.hl-theme :is(.app-feature,.art-app-banner,.art-podium) p{color:#dce7e9}
+.hl-theme .art-app-tabs{background:#17394df5;box-shadow:0 -5px 22px #17394d18}
+.hl-theme .art-app-tabs a[aria-current="page"]{background:#31566b;box-shadow:inset 0 -3px var(--hl-gold)}
+/* Destination cues apply to dynamically created links as well. */
+.hl-theme a{--route-ink:var(--hl-blue);--route-fill:var(--hl-navy);--route-text:#fff;--route-tint:#e9f0f4;--route-line:#b8cdd8}
+.hl-theme a:is([href*="virtual-gallery"],[href*="art-collections"],[href*="swan-collection"],[href*="art-room-gallery"],[href*="room-planner"],[href*="view-in-room"],[href*="buy-print"]){--route-ink:var(--hl-gold-ink);--route-fill:var(--hl-gold);--route-text:var(--hl-navy);--route-tint:#f1e7d2;--route-line:#c5a56b}
+.hl-theme :is(.navlinks,header nav,.planner-header) a:not(.brand){color:var(--route-ink);box-shadow:inset 0 -2px var(--route-line);padding-bottom:10px}
+.hl-theme :is(.navlinks,header nav) a:hover{background:var(--route-tint)}
+.hl-theme :is(.archive-card,.feed-body,.artist-story,.catalogue,.purchase-details,.planner-intro) a:not(.btn):not(.print-link){color:var(--route-ink);text-decoration-color:var(--route-line);text-underline-offset:4px}
+.hl-theme :is(a.btn,.app-actions a,.artist-cta a,.spotlight-link,.feed-actions a,.swan-slide-links a,.swan-showcase-head>a,.archive-card a,.print-link,.access-button){background:var(--route-fill);color:var(--route-text);border:1px solid var(--route-line);border-radius:10px;box-shadow:none;text-decoration:none;font-weight:750;padding:12px 18px;display:inline-flex;align-items:center;justify-content:center;min-height:44px;line-height:1.4}
+.hl-theme :is(a.btn,.app-actions a,.spotlight-link,.feed-actions a,.print-link,.access-button):hover{filter:brightness(.97);box-shadow:0 4px 12px #17394d16}
+.hl-theme :is(.swan-showcase,.spotlight-header,.exhibition-stage){background-color:#17394d;border-color:#bcab86}
+.hl-theme :is(.swan-showcase,.spotlight-header,.exhibition-stage) a:not(.btn):not(.spotlight-link):not(.swan-slide-links a):not(.swan-showcase-head>a){color:#eddbb5}
+.hl-theme :is(.swan-showcase-head>a,.swan-slide-links a){--route-fill:var(--hl-gold);--route-text:var(--hl-navy);--route-line:#c5a56b}
+.hl-theme :is(button.primary,button.vote,.competition-vote,.purchase-note button:not(:disabled)){background:var(--hl-navy);color:#fff;border-color:var(--hl-navy);border-radius:10px}
+.hl-theme :is(.welcome #enter,.planner-primary,.exhibition-tools button,.swan-controls button,.room-preview-badge){background:var(--hl-gold);color:var(--hl-navy);border:1px solid #c5a56b;border-radius:10px;box-shadow:none}
+.hl-theme .welcome #enter:hover{background:var(--hl-gold-hover)}
+.hl-theme :is(.feed-controls button[aria-pressed="true"],.page-button[aria-current="page"]){background:var(--hl-navy);color:#fff;border-color:var(--hl-navy)}
+.hl-theme :is(.feed-controls button,.feed-actions button,.feed-top button,.art-actions button){border-color:#b8cbd6;color:var(--hl-navy);background:#edf3f6;border-radius:10px}
+.hl-theme :is(.feed-actions button,.feed-top button)[aria-pressed="true"]{background:#dce8ee;color:var(--hl-navy);border-color:#537489}
+.hl-theme :is(.competition-vote,.vote):disabled{background:#e2e7e6;color:#536469;border-color:#c8d1d1;box-shadow:none}
+.hl-theme :is(.artist-story,.artwork-description,.purchase-note,.pilot-edition){background:var(--hl-paper);border-color:#d9d4c7}
+.hl-theme :is(.gallery-top>div,.gallery-top button,.home,.movement button,.instructions,.walk-status){background:#fbf8f0f2;color:var(--hl-navy);border-color:#c9bea6}
+.hl-theme :is(.detail-copy,.planner-controls section){color:var(--hl-navy)}
+.hl-theme :is(.access-hero,.access-mark){background:var(--hl-navy)}
+.hl-theme .access-hero h1{color:#fff5df}
+.hl-theme .access-button{--route-fill:var(--hl-navy);--route-text:#fff;--route-line:#597587}
+.hl-theme .access-hero .access-button{background:#e5d0a3;color:var(--hl-navy);border-color:#c5a56b}
+.hl-theme :is(a,button,input,select,textarea):focus-visible{outline:3px solid #386b8a!important;outline-offset:4px}
+.hl-theme :is(.swan-showcase,.spotlight-header,.app-feature,.welcome) :is(a,button):focus-visible{outline-color:#f1d99d!important}
+@media(prefers-reduced-motion:reduce){.hl-theme :is(a,button){transition:none!important}}
+
+.hl-theme .archive-card a{color:var(--route-text)!important;background:var(--route-fill)}
+.hl-theme .archive-hero{background:linear-gradient(120deg,#17394d,#455858)}
+.hl-theme .room-picker button{background:#f1e7d2;color:var(--hl-navy);border-color:#c5a56b}
+.hl-theme .room-picker button[aria-pressed="true"]{background:var(--hl-navy);color:#fff}
+/* Keep copy readable on both the pale introductory surfaces and dark panels. */
+.hl-theme :is(.hero,.page-hero,.social-hero)>:is(p,span,small),.hl-theme :is(.hero,.page-hero) .eyebrow{color:var(--hl-muted)}
+.hl-theme :is(.app-feature,.art-app-banner,.art-podium) :is(h1,h2,h3){color:#fff8e9}
+.hl-theme .social-hero p,.hl-theme .social-hero span{color:var(--hl-muted)}
