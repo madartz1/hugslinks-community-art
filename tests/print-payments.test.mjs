@@ -119,3 +119,21 @@ test('without gallery supplier keys there is no stale quote or checkout, and old
  assert.equal((await handlePayments(req('quote',{recipient:addr}),ctx,deps)).status,503);assert.equal((await handlePayments(req('checkout',{quote:'previous'}),ctx,deps)).status,503);
  const receipt=await(await handlePayments(req('status&session_id='+good.id),ctx,deps)).json();assert.equal(receipt.webhookVerified,true);
 });
+
+
+test('verified paid sandbox webhook creates one idempotent print order ledger record and admin can review it',async()=>{
+ let saved=null,updates=0;
+ const orderStore={get:async()=>saved,setJSON:async(k,v)=>{saved=v;updates++},list:async()=>({blobs:saved?[{key:'order:cs_test_example'}]:[]})};
+ const customer={name:'Test Buyer',phone:'2125550100',shipping:{address:{line1:'1 Test Street',line2:'',city:'New York',state:'NY',postal_code:'10001',country:'US'}}};
+ const stripe={checkout:{sessions:{retrieve:async()=>good,update:async()=>{}}},customers:{retrieve:async()=>customer}};
+ const event=JSON.stringify({id:'evt_order',type:'checkout.session.completed',livemode:false,data:{object:{id:good.id}}});
+ const signature=Stripe.webhooks.generateTestHeaderString({payload:event,secret:'whsec_test'});
+ const invoke=()=>handlePayments(new Request(url+'?action=webhook',{method:'POST',headers:{'stripe-signature':signature},body:event}),ctx,{...defaults,makeStripe:()=>stripe,makeOrderStore:()=>orderStore});
+ assert.equal((await invoke()).status,200);assert.equal(updates,1);assert.equal(saved.reviewStatus,'paid_pending_review');assert.equal(saved.sku,'AP108137P696597');assert.equal(saved.totalCents,47208);
+ assert.equal((await invoke()).status,200);assert.equal(updates,1);
+ const admin=await handlePayments(new Request(url+'?action=orders',{headers:{Authorization:'Bearer admin'}}),ctx,{...defaults,makeStripe:()=>stripe,makeOrderStore:()=>orderStore});
+ assert.equal(admin.status,200);const list=await admin.json();assert.equal(list.orders.length,1);assert.equal(list.orders[0].customer,undefined);
+ const approved=await handlePayments(new Request(url+'?action=orders',{method:'POST',headers:{Authorization:'Bearer admin','content-type':'application/json'},body:JSON.stringify({id:good.id,reviewStatus:'approved_test_hold'})}),ctx,{...defaults,makeStripe:()=>stripe,makeOrderStore:()=>orderStore});
+ assert.equal(approved.status,200);assert.equal(saved.reviewStatus,'approved_test_hold');
+ assert.equal((await handlePayments(new Request(url+'?action=orders',{headers:{Authorization:'Bearer wrong'}}),ctx,{...defaults,makeStripe:()=>stripe,makeOrderStore:()=>orderStore})).status,401);
+});
