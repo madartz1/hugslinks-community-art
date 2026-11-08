@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import Stripe from 'stripe';
 import {handlePayments,signQuote,readQuote,validSession,PRICE} from '../netlify/lib/print-payments.mjs';
 const url='https://deploy-preview-4--hugslinks-community-art.netlify.app/.netlify/functions/art-print-payments';
-const env={STRIPE_SECRET_KEY:'sk_test_dummy',HUGS_PRINT_QUOTE_SECRET:'quote-secret',HUGS_PRINT_BRIDGE_PREVIEW_TOKEN:'bridge',HUGS_PRINT_CHECKOUT_ADMIN_TOKEN:'admin'};
+const env={STRIPE_SECRET_KEY:'sk_test_dummy',HUGS_PRINT_QUOTE_SECRET:'quote-secret',FINERWORKS_TEST_WEB_API_KEY:'fixture-web',FINERWORKS_TEST_APP_KEY:'fixture-app',HUGS_PRINT_CHECKOUT_ADMIN_TOKEN:'admin'};
 const ctx={deploy:{context:'deploy-preview',id:'test'}};
 const addr={first_name:'Test',last_name:'Buyer',address_1:'1 Test Street',city:'New York',state_code:'NY',zip_postal_code:'10001',phone:'2125550100'};
 const req=(action,body,headers={})=>new Request(url+'?action='+action,{method:body?'POST':'GET',headers,body:body?JSON.stringify(body):undefined});
@@ -16,18 +16,21 @@ test('production and live keys fail closed before Stripe access',async()=>{
  assert.equal((await handlePayments(req('config'),ctx,{...deps,env:{...env,STRIPE_SECRET_KEY:'sk_live_dummy'}})).status,503);
 });
 test('quote rejects tampered amounts, invalid MACs and expired quotes',()=>{
- const q={sku:'AP108137P696597',price:PRICE,shipping:2759,nonce:'random',expires:1000};
+ const q={sku:'AP108137P696937',price:PRICE,shipping:2759,nonce:'random',expires:1000};
  const token=signQuote(q,'secret');assert.equal(readQuote(token,'secret',999).shipping,2759);
  assert.throws(()=>readQuote(token,'secret',1001));assert.throws(()=>readQuote(token,'wrong',999));
  assert.throws(()=>readQuote(signQuote({...q,price:1},'secret'),'secret',999));
+ assert.throws(()=>readQuote(signQuote({...q,sku:'AP108137P696597'},'secret'),'secret',999));
 });
-test('shipping uses supplier rates and server SKU, strips HTML and never accepts buyer price',async()=>{
- let sent;const res=await handlePayments(req('quote',{recipient:addr,price:1,sku:'wrong'}),ctx,{...defaults,makeStripe:()=>({}),fetcher:async(u,o)=>{sent=JSON.parse(o.body);return Response.json({ok:true,options:[{id:'78',automationReady:true,rateCents:2759,method:'Ground',transitTime:'1–5 days <a>map</a>'}]})}});
- const result=await res.json();assert.equal(sent.action,'shipping');assert.equal(result.options[0].totalCents,47208);assert.doesNotMatch(result.options[0].transitTime,/<a>/);const q=readQuote(result.options[0].quote,env.HUGS_PRINT_QUOTE_SECRET);assert.equal(q.price,44449);assert.equal(q.sku,'AP108137P696597');
+function supplierReply(request,rate=27.59){const order=JSON.parse(request.body).orders[0];return Response.json({status:{success:true},orders:[{order_po:order.order_po,options:[{id:78,rate,shipping_method:'Standard - Ship in Tube Preferred',transit_time:'1–5 days <a>map</a>'}]}]})}
+
+test('shipping quotes the current Swan SKU directly in test mode and never accepts buyer pricing',async()=>{
+ let sent;const res=await handlePayments(req('quote',{recipient:addr,price:1,sku:'AP108137P696597'}),ctx,{...defaults,makeStripe:()=>({}),fetcher:async(u,o)=>{assert.equal(u,'https://v2.api.finerworks.com/v3/list_shipping_options_multiple');sent=JSON.parse(o.body).orders[0];return supplierReply(o)}});
+ const result=await res.json();assert.equal(sent.test_mode,true);assert.equal(sent.order_items[0].product_sku,'AP108137P696937');assert.equal(sent.recipient.zip_postal_code,addr.zip_postal_code);assert.equal(result.options[0].totalCents,47208);assert.doesNotMatch(result.options[0].transitTime,/<a>/);const q=readQuote(result.options[0].quote,env.HUGS_PRINT_QUOTE_SECRET);assert.equal(q.price,44449);assert.equal(q.sku,'AP108137P696937');
 });
 test('checkout locks artwork and shipping amounts, customer address and idempotency',async()=>{
  let params,customer;const stripe={customers:{create:async p=>{customer=p;return{id:'cus_test'}}},checkout:{sessions:{create:async p=>{params=p;return{livemode:false,url:'https://checkout.stripe.com/c/pay/test'}}}}};
- const q=signQuote({sku:'AP108137P696597',price:PRICE,shipping:2759,method:'Ground',recipient:addr,nonce:'abcdefgh',expires:Date.now()+10000,shippingId:'78'},env.HUGS_PRINT_QUOTE_SECRET);
+ const q=signQuote({sku:'AP108137P696937',price:PRICE,shipping:2759,method:'Ground',recipient:addr,nonce:'abcdefgh',expires:Date.now()+10000,shippingId:'78'},env.HUGS_PRINT_QUOTE_SECRET);
  const res=await handlePayments(req('checkout',{quote:q,price:1}),ctx,{...defaults,makeStripe:()=>stripe});assert.equal(res.status,200);assert.equal(params.line_items[0].price_data.unit_amount,44449);assert.equal(params.line_items[1].price_data.unit_amount,2759);assert.equal(params.metadata.hugs_fulfillment,'test-hold');assert.equal(customer.shipping.address.line1,addr.address_1);assert.equal(params.payment_method_types,undefined);
 });
 test('invalid webhook signatures cannot change payment records',async()=>{
@@ -65,7 +68,7 @@ test('endpoint limit does not delete other sandbox webhooks',async()=>{
  assert.equal(result.status,502);assert.equal((await result.json()).setupError,'webhook-endpoint-limit');
 });
 test('without a webhook, live supplier quotes can be checked but payments cannot start',async()=>{
- const deps={...defaults,makeStripe:()=>({}),makeStore:()=>({get:async()=>null}),fetcher:async()=>Response.json({ok:true,options:[{id:'78',automationReady:true,rateCents:2759,method:'Ground'}]})};
+ const deps={...defaults,makeStripe:()=>({}),makeStore:()=>({get:async()=>null}),fetcher:async(u,o)=>supplierReply(o)};
  assert.equal((await handlePayments(req('quote',{recipient:addr}),ctx,deps)).status,200);
  assert.equal((await handlePayments(req('checkout',{quote:'fake'}),ctx,deps)).status,503);
 });
@@ -105,7 +108,14 @@ test('a second size uses its own test SKU and server price through quote, checko
 
 test('duplicate SKUs or invalid prices cannot appear in the sandbox catalog',async()=>{
  const deps={...defaults,makeStripe:()=>({})};
- for(const edit of [{sku:'AP108137P696597'},{priceCents:0}]){
+ for(const edit of [{sku:'AP108137P696597'},{sku:'AP108137P696937'},{priceCents:0}]){
   const invalid={...multiEnv,HUGS_PRINT_TEST_EDITIONS_JSON:JSON.stringify([{...secondEdition,...edit}])};assert.equal((await handlePayments(req('config'),ctx,{...deps,env:invalid})).status,502);
  }
+});
+
+test('without gallery supplier keys there is no stale quote or checkout, and old paid receipts remain readable',async()=>{
+ const deps={...defaults,env:{...env,FINERWORKS_TEST_APP_KEY:undefined},fetcher:async()=>assert.fail('Do not call the retired bridge'),makeStripe:()=>({customers:{create:async()=>assert.fail('Do not start a payment without supplier keys')},checkout:{sessions:{retrieve:async()=>({...good,metadata:{...good.metadata,hugs_test_payment_verified:'true'}})}}})};
+ const config=await(await handlePayments(req('config'),ctx,deps)).json();assert.equal(config.enabled,false);assert.equal(config.editions[0].quoteAvailable,false);assert.equal(config.editions[0].priceCents,44449);
+ assert.equal((await handlePayments(req('quote',{recipient:addr}),ctx,deps)).status,503);assert.equal((await handlePayments(req('checkout',{quote:'previous'}),ctx,deps)).status,503);
+ const receipt=await(await handlePayments(req('status&session_id='+good.id),ctx,deps)).json();assert.equal(receipt.webhookVerified,true);
 });

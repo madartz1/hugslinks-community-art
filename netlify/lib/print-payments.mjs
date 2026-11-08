@@ -1,7 +1,7 @@
 import Stripe from 'stripe';
 import { createHash, createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
 import { getDeployStore, getStore } from '@netlify/blobs';
-import { SWAN_EDITION, readTestEditions, editionRevision, editionSummary, sizeLabel } from './print-editions.mjs';
+import { SWAN_EDITION, RETIRED_SWAN_TEST_SKU, readTestEditions, editionRevision, editionSummary, sizeLabel } from './print-editions.mjs';
 import { quoteFinerWorksTestShipping } from './print-sandbox.mjs';
 
 export const PRICE = SWAN_EDITION.priceCents;
@@ -32,8 +32,6 @@ async function connectWebhook(stripe,readLegacyWebhook){
  }
 }
 
-const SUPPLIER = 'https://6ae3b6b6aca9dac0b568f87f--hugslinks-ai-ecom.netlify.app/.netlify/functions/art-print-sandbox';
-const SKU = SWAN_EDITION.sku;
 const json=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:{'Content-Type':'application/json','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'}});
 const equal=(a,b)=>{const x=Buffer.from(a||''),y=Buffer.from(b||'');return x.length>0&&x.length===y.length&&timingSafeEqual(x,y)};
 const hmac=(value,secret)=>createHmac('sha256',secret).update(value).digest('base64url');
@@ -56,7 +54,7 @@ const sessionSeal=(metadata,secret)=>hmac(JSON.stringify(signedSessionFields.map
 export function validSession(s,secret){
  const m=s?.metadata,price=Number(m?.price),shipping=Number(m?.shipping);
  if(s?.livemode!==false||s.currency!=='usd'||!Number.isSafeInteger(price)||price<50||price>10000000||!Number.isSafeInteger(shipping)||shipping<0||shipping>100000||s.amount_total!==price+shipping)return false;
- if(m.hugs_print==='swan-test-v1')return m.sku===SKU&&price===PRICE;
+ if(m.hugs_print==='swan-test-v1')return m.sku===RETIRED_SWAN_TEST_SKU&&price===PRICE;
  return m.hugs_print==='swan-test-v2'&&!!secret&&equal(m.print_seal,sessionSeal(m,secret));
 }
 
@@ -66,7 +64,7 @@ export async function handlePayments(request,context,{env=process.env,fetcher=fe
  if(origin!==PREVIEW_ORIGIN)return json({error:'Use the gallery checkout preview'},400);
  const canSetup=()=>equal(request.headers.get('x-hugs-checkout-admin'),env.HUGS_PRINT_PREVIEW_SETUP_TOKEN)||equal(request.headers.get('x-hugs-checkout-admin'),env.HUGS_PRINT_CHECKOUT_ADMIN_TOKEN);
  let key=env.STRIPE_SECRET_KEY?.trim();if(key?.startsWith('STRIPE_SECRET_KEY='))key=key.slice(18).trim();if((key?.startsWith('\"')&&key.endsWith('\"'))||(key?.startsWith("'")&&key.endsWith("'")))key=key.slice(1,-1).trim();const secret=env.HUGS_PRINT_QUOTE_SECRET;
- if(!/^(sk|rk)_test_/.test(key||'')||!secret||!env.HUGS_PRINT_BRIDGE_PREVIEW_TOKEN)return json({enabled:false,testOnly:true,error:!key?'Stripe sandbox key is missing':!/^(sk|rk)_test_/.test(key)?(/^(sk|rk)_live_/.test(key)?'A live Stripe key was saved; replace it with a sandbox test key':/^pk_/.test(key)?'A publishable Stripe key was saved; use a sandbox secret key':'Saved Stripe key is not a recognized sandbox secret key'):!secret?'Quote signing secret is missing':'Supplier bridge is not configured'},503);
+ if(!/^(sk|rk)_test_/.test(key||'')||!secret)return json({enabled:false,testOnly:true,error:!key?'Stripe sandbox key is missing':!/^(sk|rk)_test_/.test(key)?(/^(sk|rk)_live_/.test(key)?'A live Stripe key was saved; replace it with a sandbox test key':/^pk_/.test(key)?'A publishable Stripe key was saved; use a sandbox secret key':'Saved Stripe key is not a recognized sandbox secret key'):'Quote signing secret is missing'},503);
  const stripe=makeStripe(key),store=makeStore();
  if(!['config','status'].includes(action)&&request.method!=='POST')return json({error:'Method not allowed'},405);
  if(request.method==='POST'&&action!=='webhook'&&request.headers.get('origin')&&request.headers.get('origin')!==origin)return json({error:'Invalid origin'},403);
@@ -75,7 +73,7 @@ export async function handlePayments(request,context,{env=process.env,fetcher=fe
   const directAvailable=!!(env.FINERWORKS_TEST_WEB_API_KEY&&env.FINERWORKS_TEST_APP_KEY);
   if(action==='config'){
    const editions=readTestEditions(env.HUGS_PRINT_TEST_EDITIONS_JSON);
-   return json({enabled:!!webhook?.secret,quoteAvailable:true,testOnly:true,priceCents:PRICE,editions:editions.map(e=>editionSummary(e,e.supplier==='bridge'||directAvailable)),shippingCalculated:true,fulfillment:'test-hold',taxCalculated:false});
+   return json({enabled:!!webhook?.secret&&directAvailable,quoteAvailable:directAvailable,testOnly:true,priceCents:PRICE,editions:editions.map(e=>editionSummary(e,directAvailable)),shippingCalculated:directAvailable,fulfillment:'test-hold',taxCalculated:false});
   }
   if(action==='setup'){
    if(!canSetup())return json({error:'Unauthorized'},401);
@@ -103,14 +101,14 @@ export async function handlePayments(request,context,{env=process.env,fetcher=fe
    const paid=s.payment_status==='paid';
    return json({testOnly:true,paid,webhookVerified:paid&&s.metadata.hugs_test_payment_verified==='true',priceCents:Number(s.metadata.price),shippingCents:Number(s.metadata.shipping),totalCents:s.amount_total,...(s.metadata.print_size?{size:s.metadata.print_size}:{}),fulfillment:'test-hold'});
   }
+  if(['quote','checkout'].includes(action)&&!directAvailable)return json({error:'FinerWorks test shipping credentials are not configured for the gallery preview.'},503);
   if(action==='checkout'&&!webhook?.secret)return json({error:'Test payment confirmation is being configured. Shipping quotes are available.'},503);
   let body;try{const raw=await request.text();if(raw.length>8000)return json({error:'Request too large'},413);body=JSON.parse(raw)}catch{return json({error:'Invalid request'},400)}
   if(action==='quote'){
    const editions=readTestEditions(env.HUGS_PRINT_TEST_EDITIONS_JSON),edition=editions.find(e=>e.id===(body.editionId??SWAN_EDITION.id));
    if(!edition)return json({error:'Select a configured print size.'},400);
-   if(edition.supplier==='direct'&&!directAvailable)return json({error:'Shipping is not yet configured for this size.'},503);
    let recipient;try{recipient=cleanRecipient(body.recipient)}catch(e){return json({error:e.message},400)}
-   const res=edition.supplier==='direct'?await quoteFinerWorksTestShipping(recipient,{webKey:env.FINERWORKS_TEST_WEB_API_KEY,appKey:env.FINERWORKS_TEST_APP_KEY,sku:edition.sku,fetcher}):await fetcher(SUPPLIER,{method:'POST',headers:{'content-type':'application/json','x-hugs-print-test-token':env.HUGS_PRINT_BRIDGE_PREVIEW_TOKEN},body:JSON.stringify({action:'shipping',recipient}),signal:AbortSignal.timeout(12000)});
+   const res=await quoteFinerWorksTestShipping(recipient,{webKey:env.FINERWORKS_TEST_WEB_API_KEY,appKey:env.FINERWORKS_TEST_APP_KEY,sku:edition.sku,fetcher});
    const data=await res.json();if(!res.ok||!data.ok)return json({error:'Shipping quote unavailable. Check the address and try again.'},502);
    const valid=(data.options||[]).filter(o=>o.automationReady&&Number.isSafeInteger(o.rateCents)&&o.rateCents>=0&&o.rateCents<=100000);
    if(!valid.length)return json({error:'No shipping method available for this address.'},422);
