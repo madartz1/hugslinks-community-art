@@ -132,9 +132,13 @@ test('verified paid sandbox webhook creates one idempotent print order ledger re
  const invoke=()=>handlePayments(new Request(url+'?action=webhook',{method:'POST',headers:{'stripe-signature':signature},body:event}),ctx,{...defaults,makeStripe:()=>stripe,makeOrderStore:()=>orderStore});
  assert.equal((await invoke()).status,200);assert.equal(updates,1);assert.equal(saved.reviewStatus,'paid_pending_review');assert.equal(saved.sku,'AP108137P696597');assert.equal(saved.totalCents,47208);
  assert.equal((await invoke()).status,200);assert.equal(updates,1);
- const admin=await handlePayments(new Request(url+'?action=orders',{headers:{Authorization:'Bearer admin'}}),ctx,{...defaults,makeStripe:()=>stripe,makeOrderStore:()=>orderStore});
+ const galleryDeps={...defaults,env:{...env,HUGS_ADMIN_TOKEN:'  gallery-admin  '},makeStripe:()=>stripe,makeOrderStore:()=>orderStore};
+ const admin=await handlePayments(req('orders',undefined,{Authorization:'Bearer gallery-admin'}),ctx,galleryDeps);
  assert.equal(admin.status,200);const list=await admin.json();assert.equal(list.orders.length,1);assert.equal(list.orders[0].customer,undefined);
- const approved=await handlePayments(new Request(url+'?action=orders',{method:'POST',headers:{Authorization:'Bearer admin','content-type':'application/json'},body:JSON.stringify({id:good.id,reviewStatus:'approved_test_hold'})}),ctx,{...defaults,makeStripe:()=>stripe,makeOrderStore:()=>orderStore});
+ const approved=await handlePayments(req('orders',{id:good.id,reviewStatus:'approved_test_hold'},{Authorization:'Bearer gallery-admin'}),ctx,galleryDeps);
  assert.equal(approved.status,200);assert.equal(saved.reviewStatus,'approved_test_hold');
- assert.equal((await handlePayments(new Request(url+'?action=orders',{headers:{Authorization:'Bearer wrong'}}),ctx,{...defaults,makeStripe:()=>stripe,makeOrderStore:()=>orderStore})).status,401);
+ assert.equal((await handlePayments(req('orders',undefined,{Authorization:'Bearer admin'}),ctx,galleryDeps)).status,200);
+ assert.equal((await handlePayments(req('setup',{}, {Authorization:'Bearer gallery-admin'}),ctx,galleryDeps)).status,401);
+ assert.equal((await handlePayments(req('orders',undefined,{Authorization:'Bearer wrong'}),ctx,{...galleryDeps,makeOrderStore:()=>assert.fail('Invalid token cannot read the order store')})).status,401);
+ assert.equal((await handlePayments(req('orders',undefined,{Authorization:'Bearer gallery-admin'}),{deploy:{context:'production'}},galleryDeps)).status,404);
 });

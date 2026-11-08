@@ -64,12 +64,15 @@ export async function handlePayments(request,context,{env=process.env,fetcher=fe
  if(context?.deploy?.context!=='deploy-preview')return json({error:'Not found'},404);
  const url=new URL(request.url),origin=url.origin,action=url.searchParams.get('action')||'config';
  if(origin!==PREVIEW_ORIGIN)return json({error:'Use the gallery checkout preview'},400);
- const canSetup=()=>equal(adminTokenFromRequest(request),env.HUGS_PRINT_PREVIEW_SETUP_TOKEN)||equal(adminTokenFromRequest(request),env.HUGS_PRINT_CHECKOUT_ADMIN_TOKEN);
+ const adminToken=adminTokenFromRequest(request);
+ const canSetup=()=>equal(adminToken,env.HUGS_PRINT_PREVIEW_SETUP_TOKEN)||equal(adminToken,env.HUGS_PRINT_CHECKOUT_ADMIN_TOKEN);
+ const canReviewOrders=()=>canSetup()||equal(adminToken.trim(),env.HUGS_ADMIN_TOKEN?.trim());
  let key=env.STRIPE_SECRET_KEY?.trim();if(key?.startsWith('STRIPE_SECRET_KEY='))key=key.slice(18).trim();if((key?.startsWith('\"')&&key.endsWith('\"'))||(key?.startsWith("'")&&key.endsWith("'")))key=key.slice(1,-1).trim();const secret=env.HUGS_PRINT_QUOTE_SECRET;
  if(!/^(sk|rk)_test_/.test(key||'')||!secret)return json({enabled:false,testOnly:true,error:!key?'Stripe sandbox key is missing':!/^(sk|rk)_test_/.test(key)?(/^(sk|rk)_live_/.test(key)?'A live Stripe key was saved; replace it with a sandbox test key':/^pk_/.test(key)?'A publishable Stripe key was saved; use a sandbox secret key':'Saved Stripe key is not a recognized sandbox secret key'):'Quote signing secret is missing'},503);
- const stripe=makeStripe(key),store=makeStore();
  if(request.method!=='POST'&&!(request.method==='GET'&&['config','status','orders'].includes(action)))return json({error:'Method not allowed'},405);
  if(request.method==='POST'&&action!=='webhook'&&request.headers.get('origin')&&request.headers.get('origin')!==origin)return json({error:'Invalid origin'},403);
+ if(action==='orders'&&!canReviewOrders())return json({error:'Use the same admin token that opens Artwork Review on this gallery preview.'},401);
+ const stripe=makeStripe(key),store=makeStore();
  try{
   const webhook=await store.get('webhook',{type:'json'});
   const directAvailable=!!(env.FINERWORKS_TEST_WEB_API_KEY&&env.FINERWORKS_TEST_APP_KEY);
@@ -105,7 +108,6 @@ export async function handlePayments(request,context,{env=process.env,fetcher=fe
    return json({received:true,testOnly:true});
   }
   if(action==='orders'){
-   if(!canSetup())return json({error:'Unauthorized'},401);
    const orders=makeOrderStore();
    if(request.method==='GET'){
     const keys=(await orders.list({prefix:'order:',limit:100})).blobs||[];
