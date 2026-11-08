@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import Stripe from 'stripe';
 import {handlePayments,signQuote,readQuote,PRICE} from '../netlify/lib/print-payments.mjs';
-const url='https://deploy-preview-1--hugslinks-community-art.netlify.app/.netlify/functions/art-print-payments';
+const url='https://deploy-preview-4--hugslinks-community-art.netlify.app/.netlify/functions/art-print-payments';
 const env={STRIPE_SECRET_KEY:'sk_test_dummy',HUGS_PRINT_QUOTE_SECRET:'quote-secret',HUGS_PRINT_BRIDGE_PREVIEW_TOKEN:'bridge',HUGS_PRINT_CHECKOUT_ADMIN_TOKEN:'admin'};
 const ctx={deploy:{context:'deploy-preview',id:'test'}};
 const addr={first_name:'Test',last_name:'Buyer',address_1:'1 Test Street',city:'New York',state_code:'NY',zip_postal_code:'10001',phone:'2125550100'};
@@ -49,17 +49,29 @@ test('restored gallery previews are accepted and the released temporary hostname
  assert.equal((await handlePayments(old,ctx,deps)).status,400);
 });
 
-test('setup recovers endpoint capacity only from abandoned gallery sandbox connections',async()=>{
- let created=0,deleted=[],saved;
- const unrelated={id:'other',livemode:false,metadata:{integration:'other'},url:'https://old.example/webhook'};
- const obsolete={id:'obsolete',livemode:false,metadata:{integration:'hugs-art-print-sandbox'},url:'https://old--hl-art-gallery.netlify.app/.netlify/functions/art-print-payments?action=webhook'};
- const stripe={webhookEndpoints:{create:async()=>{if(++created===1)throw Error('You cannot have more than 16 webhook endpoints');return {id:'new',secret:'whsec_new'}},list:async()=>({data:[unrelated,{...obsolete,id:'live',livemode:true},obsolete]}),del:async id=>deleted.push(id)}};
- const result=await handlePayments(req('setup',{}, {'x-hugs-checkout-admin':'admin'}),ctx,{...defaults,makeStripe:()=>stripe,makeStore:()=>({get:async()=>null,setJSON:async(k,v)=>{saved=v}})});
- assert.equal(result.status,200);assert.deepEqual(deleted,['obsolete']);assert.equal(saved.secret,'whsec_new');
+test('one stable sandbox webhook is reused across preview rebuilds',async()=>{
+ let saved,created=0;const makeStore=()=>({get:async()=>saved||null,setJSON:async(k,v)=>{saved=v}});
+ const stripe={webhookEndpoints:{create:async(p,o)=>{created++;assert.equal(p.url,url+'?action=webhook');assert.equal(o.idempotencyKey,'hugs-print-preview-4-webhook-v2');return{id:'we_test',secret:'whsec_new',livemode:false}}}};
+ const deps={...defaults,makeStore,makeStripe:()=>stripe};
+ assert.equal((await handlePayments(req('setup',{}, {'x-hugs-checkout-admin':'wrong'}),ctx,deps)).status,401);
+ assert.equal((await handlePayments(req('setup',{}, {'x-hugs-checkout-admin':'admin'}),ctx,deps)).status,200);
+ const rebuilt={deploy:{context:'deploy-preview',id:'new-build'}};
+ const config=await(await handlePayments(req('config'),rebuilt,deps)).json();assert.equal(config.enabled,true);
+ assert.equal((await handlePayments(req('setup',{}, {'x-hugs-checkout-admin':'admin'}),rebuilt,deps)).status,200);assert.equal(created,1);
 });
-test('setup leaves unrelated webhooks intact when the sandbox limit is reached',async()=>{
- let deletes=0;
- const stripe={webhookEndpoints:{create:async()=>{throw Error('Too many webhook endpoints')},list:async()=>({data:[{id:'other',livemode:false,metadata:{integration:'other'},url:'https://old--hl-art-gallery.netlify.app/.netlify/functions/art-print-payments?action=webhook'}]}),del:async()=>deletes++}};
+test('endpoint limit does not delete other sandbox webhooks',async()=>{
+ const stripe={webhookEndpoints:{create:async()=>{throw Error('Too many webhook endpoints')},del:async()=>assert.fail('Do not delete existing webhooks')}};
  const result=await handlePayments(req('setup',{}, {'x-hugs-checkout-admin':'admin'}),ctx,{...defaults,makeStripe:()=>stripe,makeStore:()=>({get:async()=>null})});
- assert.equal(result.status,502);assert.equal(deletes,0);assert.equal((await result.json()).setupError,'webhook-endpoint-limit');
+ assert.equal(result.status,502);assert.equal((await result.json()).setupError,'webhook-endpoint-limit');
+});
+test('without a webhook, live supplier quotes can be checked but payments cannot start',async()=>{
+ const deps={...defaults,makeStripe:()=>({}),makeStore:()=>({get:async()=>null}),fetcher:async()=>Response.json({ok:true,options:[{id:'78',automationReady:true,rateCents:2759,method:'Ground'}]})};
+ assert.equal((await handlePayments(req('quote',{recipient:addr}),ctx,deps)).status,200);
+ assert.equal((await handlePayments(req('checkout',{quote:'fake'}),ctx,deps)).status,503);
+});
+test('payment status returns totals without customer details and requires actual payment to verify',async()=>{
+ const status=(s)=>handlePayments(req('status&session_id='+good.id),ctx,{...defaults,makeStripe:()=>({checkout:{sessions:{retrieve:async()=>s}}})});
+ const s={...good,customer_details:{email:'private@example.com'},metadata:{...good.metadata,hugs_test_payment_verified:'true'}};
+ const paid=await(await status(s)).json();assert.deepEqual(paid,{testOnly:true,paid:true,webhookVerified:true,priceCents:44449,shippingCents:2759,totalCents:47208,fulfillment:'test-hold'});
+ assert.equal((await(await status({...s,payment_status:'unpaid'})).json()).webhookVerified,false);
 });

@@ -1,8 +1,10 @@
 import Stripe from 'stripe';
-import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
-import { getDeployStore } from '@netlify/blobs';
+import { createHash, createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
+import { getStore } from '@netlify/blobs';
 
 export const PRICE = 44449;
+const PREVIEW_ORIGIN = 'https://deploy-preview-4--hugslinks-community-art.netlify.app';
+const WEBHOOK_PATH = '/.netlify/functions/art-print-payments?action=webhook';
 const SUPPLIER = 'https://6ae3b6b6aca9dac0b568f87f--hugslinks-ai-ecom.netlify.app/.netlify/functions/art-print-sandbox';
 const SKU = 'AP108137P696597';
 const json=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:{'Content-Type':'application/json','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'}});
@@ -22,33 +24,26 @@ export function cleanRecipient(v){
 }
 const plain=s=>String(s||'').replace(/<[^>]*>/g,'').slice(0,160);
 export function validSession(s){return s?.livemode===false&&s.currency==='usd'&&s.metadata?.hugs_print==='swan-test-v1'&&s.metadata?.sku===SKU&&Number(s.metadata?.price)===PRICE&&Number.isSafeInteger(Number(s.metadata?.shipping))&&Number(s.metadata.shipping)>=0&&s.amount_total===PRICE+Number(s.metadata.shipping)}
-export async function handlePayments(request,context,{env=process.env,fetcher=fetch,makeStripe=key=>new Stripe(key,{apiVersion:'2026-09-30.endive'}),makeStore=()=>getDeployStore({name:'print-checkout-config',consistency:'strong'}),now=()=>Date.now()}={}){
+export async function handlePayments(request,context,{env=process.env,fetcher=fetch,makeStripe=key=>new Stripe(key,{apiVersion:'2026-09-30.endive'}),makeStore=()=>getStore({name:'print-checkout-preview-4-config',consistency:'strong'}),now=()=>Date.now()}={}){
  if(context?.deploy?.context!=='deploy-preview')return json({error:'Not found'},404);
- const action=new URL(request.url).searchParams.get('action')||'config';
+ const url=new URL(request.url),origin=url.origin,action=url.searchParams.get('action')||'config';
+ if(origin!==PREVIEW_ORIGIN)return json({error:'Use the gallery checkout preview'},400);
+ const canSetup=()=>equal(request.headers.get('x-hugs-checkout-admin'),env.HUGS_PRINT_PREVIEW_SETUP_TOKEN)||equal(request.headers.get('x-hugs-checkout-admin'),env.HUGS_PRINT_CHECKOUT_ADMIN_TOKEN);
  let key=env.STRIPE_SECRET_KEY?.trim();if(key?.startsWith('STRIPE_SECRET_KEY='))key=key.slice(18).trim();if((key?.startsWith('\"')&&key.endsWith('\"'))||(key?.startsWith("'")&&key.endsWith("'")))key=key.slice(1,-1).trim();const secret=env.HUGS_PRINT_QUOTE_SECRET;
  if(!/^(sk|rk)_test_/.test(key||'')||!secret||!env.HUGS_PRINT_BRIDGE_PREVIEW_TOKEN)return json({enabled:false,testOnly:true,error:!key?'Stripe sandbox key is missing':!/^(sk|rk)_test_/.test(key)?(/^(sk|rk)_live_/.test(key)?'A live Stripe key was saved; replace it with a sandbox test key':/^pk_/.test(key)?'A publishable Stripe key was saved; use a sandbox secret key':'Saved Stripe key is not a recognized sandbox secret key'):!secret?'Quote signing secret is missing':'Supplier bridge is not configured'},503);
  const stripe=makeStripe(key),store=makeStore();
- const origin=new URL(request.url).origin;
- if(!/^https:\/\/(?:[a-z0-9-]+--)?hugslinks-community-art\.netlify\.app$/.test(origin))return json({error:'Unsupported preview host'},400);
  if(!['config','status'].includes(action)&&request.method!=='POST')return json({error:'Method not allowed'},405);
  if(request.method==='POST'&&action!=='webhook'&&request.headers.get('origin')&&request.headers.get('origin')!==origin)return json({error:'Invalid origin'},403);
  try{
   const webhook=await store.get('webhook',{type:'json'});
-  if(action==='config')return json({enabled:!!webhook?.secret,testOnly:true,priceCents:PRICE,shippingCalculated:true,fulfillment:'test-hold',taxCalculated:false});
+  if(action==='config')return json({enabled:!!webhook?.secret,quoteAvailable:true,testOnly:true,priceCents:PRICE,shippingCalculated:true,fulfillment:'test-hold',taxCalculated:false});
   if(action==='setup'){
-   if(!equal(request.headers.get('x-hugs-checkout-admin'),env.HUGS_PRINT_CHECKOUT_ADMIN_TOKEN))return json({error:'Unauthorized'},401);
+   if(!canSetup())return json({error:'Unauthorized'},401);
    if(webhook?.secret)return json({ok:true,testOnly:true,webhookReady:true});
-   const hookConfig={url:origin+'/.netlify/functions/art-print-payments?action=webhook',enabled_events:['checkout.session.completed','checkout.session.async_payment_succeeded','checkout.session.async_payment_failed'],metadata:{integration:'hugs-art-print-sandbox',deploy:context.deploy.id||'preview'}};
-   let hook;
-   try{hook=await stripe.webhookEndpoints.create(hookConfig)}catch(e){
-    if(!/webhook/i.test(e.message||'')||!/maximum|more than|limit|too many/i.test(e.message||''))throw e;
-    const endpoints=await stripe.webhookEndpoints.list({limit:100});
-    const obsolete=endpoints.data.find(x=>x.livemode===false&&x.metadata?.integration==='hugs-art-print-sandbox'&&/^https:\/\/(?:[a-z0-9-]+--)?hl-art-gallery\.netlify\.app\/\.netlify\/functions\/art-print-payments\?action=webhook$/.test(x.url));
-    if(!obsolete)throw e;
-    await stripe.webhookEndpoints.del(obsolete.id);
-    hook=await stripe.webhookEndpoints.create(hookConfig);
-   }
-   try{await store.setJSON('webhook',{secret:hook.secret,id:hook.id})}catch(e){await stripe.webhookEndpoints.del(hook.id);throw e}
+   const hookConfig={url:PREVIEW_ORIGIN+WEBHOOK_PATH,enabled_events:['checkout.session.completed','checkout.session.async_payment_succeeded','checkout.session.async_payment_failed'],metadata:{integration:'hugs-art-print-sandbox',preview:'4'}};
+   const hook=await stripe.webhookEndpoints.create(hookConfig,{idempotencyKey:'hugs-print-preview-4-webhook-v2'});
+   if(hook.livemode!==false||!hook.secret)throw Error('Unexpected sandbox webhook');
+   await store.setJSON('webhook',{secret:hook.secret,id:hook.id});
    return json({ok:true,testOnly:true,webhookReady:true});
   }
   if(action==='webhook'){
@@ -66,9 +61,10 @@ export async function handlePayments(request,context,{env=process.env,fetcher=fe
   if(action==='status'){
    const id=new URL(request.url).searchParams.get('session_id');if(!/^cs_test_[a-zA-Z0-9]+$/.test(id||''))return json({error:'Invalid session'},400);
    const s=await stripe.checkout.sessions.retrieve(id);if(!validSession(s))return json({error:'Unknown print test'},404);
-   return json({testOnly:true,paid:s.payment_status==='paid',webhookVerified:s.metadata.hugs_test_payment_verified==='true',fulfillment:'test-hold'});
+   const paid=s.payment_status==='paid';
+   return json({testOnly:true,paid,webhookVerified:paid&&s.metadata.hugs_test_payment_verified==='true',priceCents:PRICE,shippingCents:Number(s.metadata.shipping),totalCents:s.amount_total,fulfillment:'test-hold'});
   }
-  if(!webhook?.secret)return json({error:'Test checkout is being configured'},503);
+  if(action==='checkout'&&!webhook?.secret)return json({error:'Test payment confirmation is being configured. Shipping quotes are available.'},503);
   let body;try{const raw=await request.text();if(raw.length>8000)return json({error:'Request too large'},413);body=JSON.parse(raw)}catch{return json({error:'Invalid request'},400)}
   if(action==='quote'){
    let recipient;try{recipient=cleanRecipient(body.recipient)}catch(e){return json({error:e.message},400)}
@@ -84,13 +80,13 @@ export async function handlePayments(request,context,{env=process.env,fetcher=fe
    const r=q.recipient;
    const customer=await stripe.customers.create({name:r.first_name+' '+r.last_name,shipping:{name:r.first_name+' '+r.last_name,phone:r.phone,address:{line1:r.address_1,line2:r.address_2||undefined,city:r.city,state:r.state_code,postal_code:r.zip_postal_code,country:'US'}},metadata:{hugs_sandbox:'art-print'}},{idempotencyKey:'hugs-print-customer-'+q.nonce});
    const item=(name,amount)=>({price_data:{currency:'usd',unit_amount:amount,product_data:{name}},quantity:1});
-   const session=await stripe.checkout.sessions.create({mode:'payment',branding_settings:{display_name:'HL Art Gallery'},customer:customer.id,line_items:[item('Swan canvas · 36 × 43 inches · unmounted',PRICE),item(q.method+' shipping',q.shipping)],success_url:origin+'/buy-print.html?artwork=archive-eye&session_id={CHECKOUT_SESSION_ID}',cancel_url:origin+'/buy-print.html?artwork=archive-eye&cancelled=1',expires_at:Math.floor(now()/1000)+1800,integration_identifier:'hugs_art_'+q.nonce.replace(/[^a-z]/g,'a').slice(0,8),metadata:{hugs_print:'swan-test-v1',sku:SKU,price:String(PRICE),shipping:String(q.shipping),shipping_id:String(q.shippingId),hugs_fulfillment:'test-hold'},custom_text:{submit:{message:'Sandbox test only. No print will be produced. Tax is not calculated in this test. Delivery quote: '+r.address_1+', '+r.city+', '+r.state_code+' '+r.zip_postal_code}}},{idempotencyKey:'hugs-print-checkout-'+q.nonce});
-   if(session.livemode||!session.url?.startsWith('https://checkout.stripe.com/'))throw Error('Unexpected checkout');
+   const session=await stripe.checkout.sessions.create({mode:'payment',branding_settings:{display_name:'HL Art Gallery'},customer:customer.id,line_items:[item('Swan canvas · 36 × 43 inches · unmounted',PRICE),item(q.method+' shipping',q.shipping)],success_url:origin+'/buy-print.html?artwork=archive-eye&session_id={CHECKOUT_SESSION_ID}',cancel_url:origin+'/buy-print.html?artwork=archive-eye&cancelled=1',expires_at:Math.floor(now()/1000)+1800,integration_identifier:'hugs_art_'+Array.from(createHash('sha256').update(q.nonce).digest().subarray(0,8),b=>String.fromCharCode(97+b%26)).join(''),metadata:{hugs_print:'swan-test-v1',sku:SKU,price:String(PRICE),shipping:String(q.shipping),shipping_id:String(q.shippingId),hugs_fulfillment:'test-hold'},custom_text:{submit:{message:'Sandbox test only. No print will be produced. Tax is not calculated in this test. Delivery quote: '+r.address_1+', '+r.city+', '+r.state_code+' '+r.zip_postal_code}}},{idempotencyKey:'hugs-print-checkout-'+q.nonce});
+   if(session.livemode!==false||!session.url?.startsWith('https://checkout.stripe.com/'))throw Error('Unexpected checkout');
    return json({testOnly:true,url:session.url});
   }
   return json({error:'Unsupported action'},400);
  }catch(e){
-  const setupError=action==='setup'&&equal(request.headers.get('x-hugs-checkout-admin'),env.HUGS_PRINT_CHECKOUT_ADMIN_TOKEN)?(/webhook/i.test(e.message||'')&&/maximum|more than|limit|too many/i.test(e.message||'')?'webhook-endpoint-limit':e.type==='StripeAuthenticationError'?'stripe-authentication':e.type==='StripePermissionError'?'stripe-permission':e.type==='StripeConnectionError'?'stripe-connection':'setup-failed'):undefined;
+  const setupError=action==='setup'&&canSetup()?(/webhook/i.test(e.message||'')&&/maximum|more than|limit|too many/i.test(e.message||'')?'webhook-endpoint-limit':e.type==='StripeAuthenticationError'?'stripe-authentication':e.type==='StripePermissionError'?'stripe-permission':e.type==='StripeConnectionError'?'stripe-connection':'setup-failed'):undefined;
   return json({error:'Sandbox payment service unavailable. Please try again.',testOnly:true,...(setupError?{setupError}:{})},502)
  }
 }
