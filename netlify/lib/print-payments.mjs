@@ -32,7 +32,7 @@ async function connectWebhook(stripe,readLegacyWebhook){
  }
 }
 
-const json=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:{'Content-Type':'application/json','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'}});
+const json=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:{'Content-Type':'application/json','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'}});\nconst orderStoreDefault=()=>getStore({name:'print-orders-preview-4',consistency:'strong'});\nconst adminTokenFromRequest=request=>{const bearer=(request.headers.get('authorization')||'').match(/^Bearer\\s+(.+)$/i)?.[1]||'';return bearer||request.headers.get('x-hugs-checkout-admin')||''};
 const equal=(a,b)=>{const x=Buffer.from(a||''),y=Buffer.from(b||'');return x.length>0&&x.length===y.length&&timingSafeEqual(x,y)};
 const hmac=(value,secret)=>createHmac('sha256',secret).update(value).digest('base64url');
 export function signQuote(data,secret){const b=Buffer.from(JSON.stringify(data)).toString('base64url');return b+'.'+hmac(b,secret)}
@@ -58,14 +58,14 @@ export function validSession(s,secret){
  return m.hugs_print==='swan-test-v2'&&!!secret&&equal(m.print_seal,sessionSeal(m,secret));
 }
 
-export async function handlePayments(request,context,{env=process.env,fetcher=fetch,makeStripe=key=>new Stripe(key,{apiVersion:'2026-09-30.endive'}),makeStore=()=>getStore({name:'print-checkout-preview-4-config',consistency:'strong'}),readLegacyWebhook=deployID=>getDeployStore({name:'print-checkout-config',deployID,consistency:'strong'}).get('webhook',{type:'json'}),now=()=>Date.now()}={}){
+export async function handlePayments(request,context,{env=process.env,fetcher=fetch,makeStripe=key=>new Stripe(key,{apiVersion:'2026-09-30.endive'}),makeStore=()=>getStore({name:'print-checkout-preview-4-config',consistency:'strong'}),makeOrderStore=orderStoreDefault,readLegacyWebhook=deployID=>getDeployStore({name:'print-checkout-config',deployID,consistency:'strong'}).get('webhook',{type:'json'}),now=()=>Date.now()}={}){
  if(context?.deploy?.context!=='deploy-preview')return json({error:'Not found'},404);
  const url=new URL(request.url),origin=url.origin,action=url.searchParams.get('action')||'config';
  if(origin!==PREVIEW_ORIGIN)return json({error:'Use the gallery checkout preview'},400);
- const canSetup=()=>equal(request.headers.get('x-hugs-checkout-admin'),env.HUGS_PRINT_PREVIEW_SETUP_TOKEN)||equal(request.headers.get('x-hugs-checkout-admin'),env.HUGS_PRINT_CHECKOUT_ADMIN_TOKEN);
+ const canSetup=()=>equal(adminTokenFromRequest(request),env.HUGS_PRINT_PREVIEW_SETUP_TOKEN)||equal(adminTokenFromRequest(request),env.HUGS_PRINT_CHECKOUT_ADMIN_TOKEN);
  let key=env.STRIPE_SECRET_KEY?.trim();if(key?.startsWith('STRIPE_SECRET_KEY='))key=key.slice(18).trim();if((key?.startsWith('\"')&&key.endsWith('\"'))||(key?.startsWith("'")&&key.endsWith("'")))key=key.slice(1,-1).trim();const secret=env.HUGS_PRINT_QUOTE_SECRET;
  if(!/^(sk|rk)_test_/.test(key||'')||!secret)return json({enabled:false,testOnly:true,error:!key?'Stripe sandbox key is missing':!/^(sk|rk)_test_/.test(key)?(/^(sk|rk)_live_/.test(key)?'A live Stripe key was saved; replace it with a sandbox test key':/^pk_/.test(key)?'A publishable Stripe key was saved; use a sandbox secret key':'Saved Stripe key is not a recognized sandbox secret key'):'Quote signing secret is missing'},503);
- const stripe=makeStripe(key),store=makeStore();
+ const stripe=makeStripe(key),store=makeStore(),orders=makeOrderStore();
  if(!['config','status'].includes(action)&&request.method!=='POST')return json({error:'Method not allowed'},405);
  if(request.method==='POST'&&action!=='webhook'&&request.headers.get('origin')&&request.headers.get('origin')!==origin)return json({error:'Invalid origin'},403);
  try{
@@ -93,7 +93,31 @@ export async function handlePayments(request,context,{env=process.env,fetcher=fe
    if(event.type==='checkout.session.async_payment_failed')return json({received:true});
    if(session.payment_status!=='paid')return json({received:true,pending:true});
    await stripe.checkout.sessions.update(session.id,{metadata:{hugs_test_payment_verified:'true',hugs_fulfillment:'test-hold'}},{idempotencyKey:'hugs-print-verified-'+session.id});
+   const existing=await orders.get('order:'+session.id,{type:'json'});
+   if(!existing){
+    const customer=session.customer?await stripe.customers.retrieve(session.customer):null;
+    const m=session.metadata||{};
+    const order={id:session.id,createdAt:now(),updatedAt:now(),reviewStatus:'paid_pending_review',testOnly:true,artworkId:m.artwork_id,editionId:m.edition_id,printSize:m.print_size,sku:m.sku,priceCents:Number(m.price),shippingCents:Number(m.shipping),totalCents:Number(session.amount_total),stripeSessionId:session.id,paymentStatus:session.payment_status,fulfillment:'test-hold',customer:{name:customer?.name||'',phone:customer?.phone||'',address:customer?.shipping?.address?{line1:customer.shipping.address.line1||'',line2:customer.shipping.address.line2||'',city:customer.shipping.address.city||'',state:customer.shipping.address.state||'',postal_code:customer.shipping.address.postal_code||'',country:customer.shipping.address.country||''}:null}};
+    await orders.setJSON('order:'+session.id,order);
+   }
    return json({received:true,testOnly:true});
+  }
+  if(action==='orders'){
+   if(!canSetup())return json({error:'Unauthorized'},401);
+   if(request.method==='GET'){
+    const keys=(await orders.list({prefix:'order:',limit:100})).blobs||[];
+    const rows=[];
+    for(const item of keys){const row=await orders.get(item.key,{type:'json'});if(row)rows.push({...row,customer:undefined})}
+    rows.sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt)));
+    return json({testOnly:true,orders:rows});
+   }
+   let body;try{body=await request.json()}catch{return json({error:'Invalid request'},400)}
+   const id=typeof body?.id==='string'?body.id:'';const next=typeof body?.reviewStatus==='string'?body.reviewStatus:'';
+   if(!/^cs_test_[A-Za-z0-9]+$/.test(id)||!['paid_pending_review','approved_test_hold','rejected'].includes(next))return json({error:'Invalid order review update'},400);
+   const current=await orders.get('order:'+id,{type:'json'});if(!current)return json({error:'Order not found'},404);
+   if(current.reviewStatus==='rejected'&&next==='approved_test_hold')return json({error:'Rejected test orders cannot be reopened in this preview.'},409);
+   current.reviewStatus=next;current.updatedAt=now();current.reviewedAt=now();await orders.setJSON('order:'+id,current);
+   return json({ok:true,testOnly:true,order:{...current,customer:undefined}});
   }
   if(action==='status'){
    const id=new URL(request.url).searchParams.get('session_id');if(!/^cs_test_[a-zA-Z0-9]+$/.test(id||''))return json({error:'Invalid session'},400);
