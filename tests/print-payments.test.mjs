@@ -9,7 +9,7 @@ const addr={first_name:'Test',last_name:'Buyer',address_1:'1 Test Street',city:'
 const req=(action,body,headers={})=>new Request(url+'?action='+action,{method:body?'POST':'GET',headers,body:body?JSON.stringify(body):undefined});
 const good={id:'cs_test_example',livemode:false,currency:'usd',amount_total:47208,payment_status:'paid',metadata:{hugs_print:'swan-test-v1',sku:'AP108137P696597',price:'44449',shipping:'2759'}};
 const store={get:async()=>({secret:'whsec_test'}),setJSON:async()=>{}};
-const defaults={env,makeStore:()=>store};
+const defaults={env,makeStore:()=>store,makeOrderStore:()=>({get:async()=>null,setJSON:async()=>{}})};
 test('production and live keys fail closed before Stripe access',async()=>{
  const deps={...defaults,makeStripe:()=>{throw Error('must not call')}};
  assert.equal((await handlePayments(req('config'),{deploy:{context:'production'}},deps)).status,404);
@@ -123,9 +123,10 @@ test('without gallery supplier keys there is no stale quote or checkout, and old
 
 test('verified paid sandbox webhook creates one idempotent print order ledger record and admin can review it',async()=>{
  let saved=null,updates=0;
- const orderStore={get:async()=>saved,setJSON:async(k,v)=>{saved=v;updates++},list:async()=>({blobs:saved?[{key:'order:cs_test_example'}]:[]})};
- const customer={name:'Test Buyer',phone:'2125550100',shipping:{address:{line1:'1 Test Street',line2:'',city:'New York',state:'NY',postal_code:'10001',country:'US'}}};
- const stripe={checkout:{sessions:{retrieve:async()=>good,update:async()=>{}}},customers:{retrieve:async()=>customer}};
+ const orderStore={get:async()=>saved,setJSON:async(k,v,options)=>{if(!saved)assert.equal(options?.onlyIfNew,true);saved=v;updates++},list:async()=>({blobs:saved?[{key:'order:cs_test_example'}]:[]})};
+ const stripe=new Stripe('sk_test_dummy');
+ stripe.checkout.sessions.retrieve=async()=>good;
+ stripe.checkout.sessions.update=async()=>{};
  const event=JSON.stringify({id:'evt_order',type:'checkout.session.completed',livemode:false,data:{object:{id:good.id}}});
  const signature=Stripe.webhooks.generateTestHeaderString({payload:event,secret:'whsec_test'});
  const invoke=()=>handlePayments(new Request(url+'?action=webhook',{method:'POST',headers:{'stripe-signature':signature},body:event}),ctx,{...defaults,makeStripe:()=>stripe,makeOrderStore:()=>orderStore});
