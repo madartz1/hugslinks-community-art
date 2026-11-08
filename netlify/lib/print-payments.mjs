@@ -136,10 +136,20 @@ export async function handlePayments(request,context,{env=process.env,fetcher=fe
    if(!edition)return json({error:'Select a configured print size.'},400);
    let recipient;try{recipient=cleanRecipient(body.recipient)}catch(e){return json({error:e.message},400)}
    const res=await quoteFinerWorksTestShipping(recipient,{webKey:env.FINERWORKS_TEST_WEB_API_KEY,appKey:env.FINERWORKS_TEST_APP_KEY,sku:edition.sku,fetcher});
-   const data=await res.json();if(!res.ok||!data.ok)return json({error:'Shipping quote unavailable. Check the address and try again.'},502);
+   const data=await res.json();
+   if(!res.ok||!data.ok){
+    const messages={
+     supplier_authentication_rejected:'FinerWorks rejected the gallery’s test credentials.',
+     supplier_profile_incomplete:'FinerWorks requires a completed account profile.',
+     supplier_product_or_sku_error:'FinerWorks could not quote this print edition.',
+     supplier_address_rejected:'FinerWorks could not validate the delivery address.',
+     supplier_timeout:'FinerWorks took too long to return a shipping quote. Try again.',
+    };
+    return json({error:messages[data.error]||'FinerWorks shipping is temporarily unavailable. Try again.',reason:data.error},502);
+   }
    const valid=(data.options||[]).filter(o=>o.automationReady&&Number.isSafeInteger(o.rateCents)&&o.rateCents>=0&&o.rateCents<=100000);
    if(!valid.length)return json({error:'No shipping method available for this address.'},422);
-   const options=valid.map(o=>{const q={editionId:edition.id,revision:editionRevision(edition),sku:edition.sku,price:edition.priceCents,shipping:o.rateCents,method:plain(o.method),shippingId:o.id,recipient,expires:now()+15*60*1000,nonce:randomBytes(16).toString('hex')};return {method:q.method,shippingCents:q.shipping,totalCents:q.price+q.shipping,transitTime:plain(o.transitTime),quote:signQuote(q,secret)}});
+   const options=valid.map(o=>{const q={editionId:edition.id,revision:editionRevision(edition),sku:edition.sku,price:edition.priceCents,shipping:o.rateCents,method:plain(o.method),shippingId:o.code||o.id,recipient,expires:now()+15*60*1000,nonce:randomBytes(16).toString('hex')};return {method:q.method,shippingCents:q.shipping,totalCents:q.price+q.shipping,transitTime:plain(o.transitTime),quote:signQuote(q,secret)}});
    return json({testOnly:true,editionId:edition.id,priceCents:edition.priceCents,options});
   }
   if(action==='checkout'){

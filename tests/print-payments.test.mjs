@@ -22,11 +22,11 @@ test('quote rejects tampered amounts, invalid MACs and expired quotes',()=>{
  assert.throws(()=>readQuote(signQuote({...q,price:1},'secret'),'secret',999));
  assert.throws(()=>readQuote(signQuote({...q,sku:'AP108137P696597'},'secret'),'secret',999));
 });
-function supplierReply(request,rate=27.59){const order=JSON.parse(request.body).orders[0];return Response.json({status:{success:true},orders:[{order_po:order.order_po,options:[{id:78,rate,shipping_method:'Standard - Ship in Tube Preferred',transit_time:'1–5 days <a>map</a>'}]}]})}
+function supplierReply(request,rate=27.59){const order=JSON.parse(request.body).orders[0];return Response.json({status:{success:true},orders:[{order_po:order.order_po,options:[{id:0,shipping_code:'SD',rate,shipping_method:'Standard - Ship in Tube Preferred',transit_time:'1–5 days <a>map</a>'}]}]})}
 
 test('shipping quotes the current Swan SKU directly in test mode and never accepts buyer pricing',async()=>{
  let sent;const res=await handlePayments(req('quote',{recipient:addr,price:1,sku:'AP108137P696597'}),ctx,{...defaults,makeStripe:()=>({}),fetcher:async(u,o)=>{assert.equal(u,'https://v2.api.finerworks.com/v3/list_shipping_options_multiple');sent=JSON.parse(o.body).orders[0];return supplierReply(o)}});
- const result=await res.json();assert.equal(sent.test_mode,true);assert.equal(sent.order_items[0].product_sku,'AP108137P696937');assert.equal(sent.recipient.zip_postal_code,addr.zip_postal_code);assert.equal(result.options[0].totalCents,47208);assert.doesNotMatch(result.options[0].transitTime,/<a>/);const q=readQuote(result.options[0].quote,env.HUGS_PRINT_QUOTE_SECRET);assert.equal(q.price,44449);assert.equal(q.sku,'AP108137P696937');
+ const result=await res.json();assert.equal(sent.test_mode,true);assert.equal(sent.order_items[0].product_sku,'AP108137P696937');assert.equal(sent.recipient.zip_postal_code,addr.zip_postal_code);assert.equal(result.options[0].totalCents,47208);assert.doesNotMatch(result.options[0].transitTime,/<a>/);const q=readQuote(result.options[0].quote,env.HUGS_PRINT_QUOTE_SECRET);assert.equal(q.price,44449);assert.equal(q.sku,'AP108137P696937');assert.equal(q.shippingId,'SD');assert.equal(sent.recipient.address_order_po,sent.order_po);
 });
 test('checkout locks artwork and shipping amounts, customer address and idempotency',async()=>{
  let params,customer;const stripe={customers:{create:async p=>{customer=p;return{id:'cus_test'}}},checkout:{sessions:{create:async p=>{params=p;return{livemode:false,url:'https://checkout.stripe.com/c/pay/test'}}}}};

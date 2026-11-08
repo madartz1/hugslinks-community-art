@@ -16,9 +16,12 @@ function reason(http,data){
  if(http===404)return 'supplier_endpoint_not_found';
  if(http===408||http===429)return 'supplier_temporarily_unavailable';
  if(http>=500)return 'supplier_server_error';
- const message=String(data?.status?.message||data?.message||'').toLowerCase();
+ const fields=Object.values(data?.ModelState||{}).flat().filter(v=>typeof v==='string').slice(0,25);
+ const message=[data?.status?.message,data?.message,data?.Message,...fields].filter(v=>typeof v==='string').join(' ').toLowerCase();
+ if(/auth|api.key|app.key|credential|permission/.test(message))return 'supplier_authentication_rejected';
+ if(/business profile|billing profile|account profile|company profile/.test(message))return 'supplier_profile_incomplete';
  if(/sku|product|catalog|item/.test(message))return 'supplier_product_or_sku_error';
- if(/auth|key|credential|permission/.test(message))return 'supplier_authentication_rejected';
+ if(/address|recipient|postal|zip/.test(message))return 'supplier_address_rejected';
  if(http>=400)return 'supplier_request_rejected';
  return 'supplier_response_unconfirmed';
 }
@@ -49,16 +52,19 @@ async function supplierRequest(body,{webKey,appKey,sku,fetcher,uuid}) {
   const dest=recipient(body.recipient);if(!dest)return json({error:'Provide a valid contiguous US address for the test.'},400);
   const po='HUGS-TEST-'+uuid();orderPo=po;
   endpoint='list_shipping_options_multiple';
-  payload={orders:[{order_po:po,guest:false,recipient:dest,order_items:[{product_order_po:po,product_qty:1,product_sku:sku,product_title:'Swan Canvas Test'}],test_mode:true}],account_key:null};
+  payload={orders:[{order_po:po,guest:false,recipient:{...dest,address_order_po:po},order_items:[{product_order_po:po,product_qty:1,product_sku:sku,product_title:'Swan Canvas Test'}],test_mode:true}],account_key:null};
  }
- let response,data;const ctrl=new AbortController(),timer=setTimeout(()=>ctrl.abort(),8000);
+ let response,data;const ctrl=new AbortController(),timer=setTimeout(()=>ctrl.abort(),15000);
  try{
-  response=await fetcher('https://v2.api.finerworks.com/v3/'+endpoint,{method:'POST',headers:{'Content-Type':'application/json','web_api_key':webKey,'app_key':appKey},body:JSON.stringify(payload),signal:ctrl.signal});
+  response=await fetcher('https://v2.api.finerworks.com/v3/'+endpoint,{method:'POST',headers:{'Content-Type':'application/json','web_api_key':webKey.trim(),'app_key':appKey.trim()},body:JSON.stringify(payload),signal:ctrl.signal});
   const raw=await response.text();try{data=JSON.parse(raw)}catch{data=null}
   if(!response.ok||data?.status?.success!==true)return json({ok:false,testOnly:true,error:reason(response.status,data),supplierHttpStatus:response.status},502);
   if(body.action==='product')return json({ok:true,testOnly:true,action:'product',message:'FinerWorks accepted the product lookup. Confirm the SKU’s size, material, artwork, and pricing before launch.'});
   const orders=Array.isArray(data.orders)?data.orders:[],order=orders.find(o=>o?.order_po===orderPo);if(!order)return json({ok:false,testOnly:true,error:'supplier_response_unconfirmed'},502);const options=Array.isArray(order.options)?order.options:[];
-  const safe=options.filter(o=>Number.isFinite(Number(o.rate))&&Number(o.rate)>=0&&typeof o.shipping_method==='string').map(o=>({id:String(o.id??''),method:o.shipping_method.slice(0,120),rateCents:Math.round(Number(o.rate)*100),currency:'USD',transitTime:typeof o.transit_time==='string'?o.transit_time.slice(0,80):null,automationReady:Number.isInteger(Number(o.id))&&Number(o.id)>0}));
+  const safe=options.filter(o=>o?.rate!==null&&o?.rate!==''&&Number.isFinite(Number(o?.rate))&&Number(o.rate)>=0&&typeof o.shipping_method==='string'&&o.shipping_method.trim()).map(o=>{
+   const code=typeof o.shipping_code==='string'&&/^[a-z0-9_-]{1,32}$/i.test(o.shipping_code)?o.shipping_code:'';
+   return {id:String(o.id??''),...(code?{code}:{}),method:o.shipping_method.slice(0,120),rateCents:Math.round(Number(o.rate)*100),currency:'USD',transitTime:typeof o.transit_time==='string'?o.transit_time.slice(0,80):null,automationReady:!!code||(Number.isInteger(Number(o.id))&&Number(o.id)>0)};
+  });
   return json({ok:true,testOnly:true,action:'shipping',options:safe});
  }catch(e){return json({ok:false,testOnly:true,error:e?.name==='AbortError'?'supplier_timeout':'supplier_network_error'},502)}
  finally{clearTimeout(timer)}
