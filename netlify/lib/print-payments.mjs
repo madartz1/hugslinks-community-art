@@ -145,7 +145,7 @@ export async function handlePayments(request,context,{env=process.env,fetcher=fe
      supplier_address_rejected:'FinerWorks could not validate the delivery address.',
      supplier_timeout:'FinerWorks took too long to return a shipping quote. Try again.',
     };
-    return json({error:messages[data.error]||'FinerWorks shipping is temporarily unavailable. Try again.',reason:data.error},502);
+    return json({error:messages[data.error]||'FinerWorks shipping is temporarily unavailable. Try again.',reason:data.error,...(Number.isInteger(data.supplierHttpStatus)?{supplierStatus:data.supplierHttpStatus}:{})},502);
    }
    const valid=(data.options||[]).filter(o=>o.automationReady&&Number.isSafeInteger(o.rateCents)&&o.rateCents>=0&&o.rateCents<=100000);
    if(!valid.length)return json({error:'No shipping method available for this address.'},422);

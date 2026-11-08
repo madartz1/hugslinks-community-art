@@ -20,6 +20,7 @@ function reason(http,data){
  const message=[data?.status?.message,data?.message,data?.Message,...fields].filter(v=>typeof v==='string').join(' ').toLowerCase();
  if(/auth|api.key|app.key|credential|permission/.test(message))return 'supplier_authentication_rejected';
  if(/business profile|billing profile|account profile|company profile/.test(message))return 'supplier_profile_incomplete';
+ if(/shipping.code|shipping method/.test(message))return 'supplier_shipping_code_rejected';
  if(/sku|product|catalog|item/.test(message))return 'supplier_product_or_sku_error';
  if(/address|recipient|postal|zip/.test(message))return 'supplier_address_rejected';
  if(http>=400)return 'supplier_request_rejected';
@@ -52,7 +53,7 @@ async function supplierRequest(body,{webKey,appKey,sku,fetcher,uuid}) {
   const dest=recipient(body.recipient);if(!dest)return json({error:'Provide a valid contiguous US address for the test.'},400);
   const po='HUGS-TEST-'+uuid();orderPo=po;
   endpoint='list_shipping_options_multiple';
-  payload={orders:[{order_po:po,guest:false,recipient:{...dest,address_order_po:po},order_items:[{product_order_po:po,product_qty:1,product_sku:sku,product_title:'Swan Canvas Test'}],test_mode:true}],account_key:null};
+  payload={orders:[{order_po:po,guest:false,recipient:{...dest,address_order_po:po},order_items:[{product_order_po:po,product_qty:1,product_sku:sku,product_title:'Swan Canvas Test'}],shipping_code:'SD',test_mode:true}],account_key:null};
  }
  let response,data;const ctrl=new AbortController(),timer=setTimeout(()=>ctrl.abort(),15000);
  try{
