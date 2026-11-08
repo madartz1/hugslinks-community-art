@@ -18,8 +18,10 @@ on the stable preview URL and saves its signing secret in the dedicated private
 `print-checkout-preview-4-config` store. This store holds one configuration
 record and deliberately persists across rebuilds; production and all other
 hosts are rejected before it is opened. No secret is returned. Setup is
-idempotent and does not remove existing Stripe endpoints. When the sandbox is
-at its endpoint limit, an owner must review and retire obsolete endpoints.
+idempotent and does not remove existing Stripe endpoints. If the sandbox
+is at capacity, setup can move a previous gallery test endpoint to the stable
+URL, but only when its deploy record contains the matching endpoint ID and
+signing secret. It does not change unrelated or live endpoints.
 
 Webhook handlers verify Stripe signatures and re-read payment details before
 recording `hugs_test_payment_verified=true` and `hugs_fulfillment=test-hold` on

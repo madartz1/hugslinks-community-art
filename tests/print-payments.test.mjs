@@ -60,7 +60,7 @@ test('one stable sandbox webhook is reused across preview rebuilds',async()=>{
  assert.equal((await handlePayments(req('setup',{}, {'x-hugs-checkout-admin':'admin'}),rebuilt,deps)).status,200);assert.equal(created,1);
 });
 test('endpoint limit does not delete other sandbox webhooks',async()=>{
- const stripe={webhookEndpoints:{create:async()=>{throw Error('Too many webhook endpoints')},del:async()=>assert.fail('Do not delete existing webhooks')}};
+ const stripe={webhookEndpoints:{create:async()=>{throw Error('Too many webhook endpoints')},list:async()=>({data:[]}),del:async()=>assert.fail('Do not delete existing webhooks')}};
  const result=await handlePayments(req('setup',{}, {'x-hugs-checkout-admin':'admin'}),ctx,{...defaults,makeStripe:()=>stripe,makeStore:()=>({get:async()=>null})});
  assert.equal(result.status,502);assert.equal((await result.json()).setupError,'webhook-endpoint-limit');
 });
@@ -74,4 +74,11 @@ test('payment status returns totals without customer details and requires actual
  const s={...good,customer_details:{email:'private@example.com'},metadata:{...good.metadata,hugs_test_payment_verified:'true'}};
  const paid=await(await status(s)).json();assert.deepEqual(paid,{testOnly:true,paid:true,webhookVerified:true,priceCents:44449,shippingCents:2759,totalCents:47208,fulfillment:'test-hold'});
  assert.equal((await(await status({...s,payment_status:'unpaid'})).json()).webhookVerified,false);
+});
+
+test('a full sandbox can migrate the exact legacy gallery webhook without deleting anything',async()=>{
+ const deploy='0123456789abcdef01234567';const old={id:'we_gallery',livemode:false,status:'enabled',url:`https://${deploy}--hugslinks-community-art.netlify.app/.netlify/functions/art-print-payments?action=webhook`,metadata:{integration:'hugs-art-print-sandbox',deploy}};let updated,saved;
+ const stripe={webhookEndpoints:{create:async()=>{throw Error('Webhook endpoint limit')},list:async()=>({data:[{...old,id:'other',livemode:true},{...old,id:'wrong-config'},old]}),update:async(id,p)=>{updated={id,...p}},del:async()=>assert.fail('Do not delete endpoints')}};
+ const result=await handlePayments(req('setup',{}, {'x-hugs-checkout-admin':'admin'}),ctx,{...defaults,makeStripe:()=>stripe,makeStore:()=>({get:async()=>null,setJSON:async(k,v)=>{saved=v}}),readLegacyWebhook:async id=>{assert.equal(id,deploy);return{id:old.id,secret:'whsec_existing'}}});
+ assert.equal(result.status,200);assert.equal(updated.id,old.id);assert.equal(updated.url,url+'?action=webhook');assert.deepEqual(saved,{id:old.id,secret:'whsec_existing'});
 });

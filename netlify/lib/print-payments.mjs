@@ -1,10 +1,35 @@
 import Stripe from 'stripe';
 import { createHash, createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
-import { getStore } from '@netlify/blobs';
+import { getDeployStore, getStore } from '@netlify/blobs';
 
 export const PRICE = 44449;
 const PREVIEW_ORIGIN = 'https://deploy-preview-4--hugslinks-community-art.netlify.app';
 const WEBHOOK_PATH = '/.netlify/functions/art-print-payments?action=webhook';
+const LEGACY_HOOK = /^https:\/\/([a-f0-9]{24})--(?:hugslinks-community-art|hl-art-gallery)\.netlify\.app\/\.netlify\/functions\/art-print-payments\?action=webhook$/;
+const INTEGRATION = 'hugs-art-print-sandbox';
+const EVENTS = ['checkout.session.completed','checkout.session.async_payment_succeeded','checkout.session.async_payment_failed'];
+const limitReached=e=>/webhook/i.test(e.message||'')&&/maximum|more than|limit|too many/i.test(e.message||'');
+async function connectWebhook(stripe,readLegacyWebhook){
+ const url=PREVIEW_ORIGIN+WEBHOOK_PATH;
+ try{return await stripe.webhookEndpoints.create({url,enabled_events:EVENTS,metadata:{integration:INTEGRATION,preview:'4'}},{idempotencyKey:'hugs-print-preview-4-webhook-v2'})}catch(error){
+  if(!limitReached(error))throw error;
+  const list=await stripe.webhookEndpoints.list({limit:100});
+  for(const hook of list.data){
+   if(hook.livemode!==false||hook.metadata?.integration!==INTEGRATION||hook.status!=='enabled')continue;
+   const priorDeploy=LEGACY_HOOK.exec(hook.url)?.[1];
+   const legacyDeploy=priorDeploy||(hook.url===url&&hook.metadata.preview==='4'?hook.metadata.deploy:'');
+   if(!/^[a-f0-9]{24}$/.test(legacyDeploy||'')||hook.metadata.deploy!==legacyDeploy)continue;
+   let config;try{config=await readLegacyWebhook(legacyDeploy)}catch{continue}
+   if(config?.id!==hook.id||!config.secret)continue;
+   // The exact endpoint and its signing secret belong to this gallery's old deploy.
+   // Updating the destination frees no capacity and leaves every other connection intact.
+   if(hook.url!==url)await stripe.webhookEndpoints.update(hook.id,{url,enabled_events:EVENTS,metadata:{integration:INTEGRATION,preview:'4',deploy:legacyDeploy}});
+   return {id:hook.id,secret:config.secret,livemode:false};
+  }
+  throw error;
+ }
+}
+
 const SUPPLIER = 'https://6ae3b6b6aca9dac0b568f87f--hugslinks-ai-ecom.netlify.app/.netlify/functions/art-print-sandbox';
 const SKU = 'AP108137P696597';
 const json=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:{'Content-Type':'application/json','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'}});
@@ -24,7 +49,7 @@ export function cleanRecipient(v){
 }
 const plain=s=>String(s||'').replace(/<[^>]*>/g,'').slice(0,160);
 export function validSession(s){return s?.livemode===false&&s.currency==='usd'&&s.metadata?.hugs_print==='swan-test-v1'&&s.metadata?.sku===SKU&&Number(s.metadata?.price)===PRICE&&Number.isSafeInteger(Number(s.metadata?.shipping))&&Number(s.metadata.shipping)>=0&&s.amount_total===PRICE+Number(s.metadata.shipping)}
-export async function handlePayments(request,context,{env=process.env,fetcher=fetch,makeStripe=key=>new Stripe(key,{apiVersion:'2026-09-30.endive'}),makeStore=()=>getStore({name:'print-checkout-preview-4-config',consistency:'strong'}),now=()=>Date.now()}={}){
+export async function handlePayments(request,context,{env=process.env,fetcher=fetch,makeStripe=key=>new Stripe(key,{apiVersion:'2026-09-30.endive'}),makeStore=()=>getStore({name:'print-checkout-preview-4-config',consistency:'strong'}),readLegacyWebhook=deployID=>getDeployStore({name:'print-checkout-config',deployID,consistency:'strong'}).get('webhook',{type:'json'}),now=()=>Date.now()}={}){
  if(context?.deploy?.context!=='deploy-preview')return json({error:'Not found'},404);
  const url=new URL(request.url),origin=url.origin,action=url.searchParams.get('action')||'config';
  if(origin!==PREVIEW_ORIGIN)return json({error:'Use the gallery checkout preview'},400);
@@ -40,8 +65,7 @@ export async function handlePayments(request,context,{env=process.env,fetcher=fe
   if(action==='setup'){
    if(!canSetup())return json({error:'Unauthorized'},401);
    if(webhook?.secret)return json({ok:true,testOnly:true,webhookReady:true});
-   const hookConfig={url:PREVIEW_ORIGIN+WEBHOOK_PATH,enabled_events:['checkout.session.completed','checkout.session.async_payment_succeeded','checkout.session.async_payment_failed'],metadata:{integration:'hugs-art-print-sandbox',preview:'4'}};
-   const hook=await stripe.webhookEndpoints.create(hookConfig,{idempotencyKey:'hugs-print-preview-4-webhook-v2'});
+   const hook=await connectWebhook(stripe,readLegacyWebhook);
    if(hook.livemode!==false||!hook.secret)throw Error('Unexpected sandbox webhook');
    await store.setJSON('webhook',{secret:hook.secret,id:hook.id});
    return json({ok:true,testOnly:true,webhookReady:true});
@@ -86,7 +110,7 @@ export async function handlePayments(request,context,{env=process.env,fetcher=fe
   }
   return json({error:'Unsupported action'},400);
  }catch(e){
-  const setupError=action==='setup'&&canSetup()?(/webhook/i.test(e.message||'')&&/maximum|more than|limit|too many/i.test(e.message||'')?'webhook-endpoint-limit':e.type==='StripeAuthenticationError'?'stripe-authentication':e.type==='StripePermissionError'?'stripe-permission':e.type==='StripeConnectionError'?'stripe-connection':'setup-failed'):undefined;
+  const setupError=action==='setup'&&canSetup()?(limitReached(e)?'webhook-endpoint-limit':e.type==='StripeAuthenticationError'?'stripe-authentication':e.type==='StripePermissionError'?'stripe-permission':e.type==='StripeConnectionError'?'stripe-connection':'setup-failed'):undefined;
   return json({error:'Sandbox payment service unavailable. Please try again.',testOnly:true,...(setupError?{setupError}:{})},502)
  }
 }
