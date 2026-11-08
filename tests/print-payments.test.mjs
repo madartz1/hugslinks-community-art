@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import Stripe from 'stripe';
-import {handlePayments,signQuote,readQuote,PRICE} from '../netlify/lib/print-payments.mjs';
+import {handlePayments,signQuote,readQuote,validSession,PRICE} from '../netlify/lib/print-payments.mjs';
 const url='https://deploy-preview-4--hugslinks-community-art.netlify.app/.netlify/functions/art-print-payments';
 const env={STRIPE_SECRET_KEY:'sk_test_dummy',HUGS_PRINT_QUOTE_SECRET:'quote-secret',HUGS_PRINT_BRIDGE_PREVIEW_TOKEN:'bridge',HUGS_PRINT_CHECKOUT_ADMIN_TOKEN:'admin'};
 const ctx={deploy:{context:'deploy-preview',id:'test'}};
@@ -81,4 +81,31 @@ test('a full sandbox can migrate the exact legacy gallery webhook without deleti
  const stripe={webhookEndpoints:{create:async()=>{throw Error('Webhook endpoint limit')},list:async()=>({data:[{...old,id:'other',livemode:true},{...old,id:'wrong-config'},old]}),update:async(id,p)=>{updated={id,...p}},del:async()=>assert.fail('Do not delete endpoints')}};
  const result=await handlePayments(req('setup',{}, {'x-hugs-checkout-admin':'admin'}),ctx,{...defaults,makeStripe:()=>stripe,makeStore:()=>({get:async()=>null,setJSON:async(k,v)=>{saved=v}}),readLegacyWebhook:async id=>{assert.equal(id,deploy);return{id:old.id,secret:'whsec_existing'}}});
  assert.equal(result.status,200);assert.equal(updated.id,old.id);assert.equal(updated.url,url+'?action=webhook');assert.deepEqual(saved,{id:old.id,secret:'whsec_existing'});
+});
+
+const secondEdition={id:'fixture-canvas-12x14',artworkId:'archive-eye',width:12,height:14,material:'Test canvas',finish:'Unmounted',sku:'FIXTURE123456',priceCents:12500};
+const multiEnv={...env,HUGS_PRINT_TEST_EDITIONS_JSON:JSON.stringify([secondEdition]),FINERWORKS_TEST_WEB_API_KEY:'fixture-web',FINERWORKS_TEST_APP_KEY:'fixture-app'};
+
+test('configured sizes expose only customer-facing details and unknown sizes are rejected',async()=>{
+ const deps={...defaults,env:multiEnv,makeStripe:()=>({}),fetcher:async()=>assert.fail('No supplier lookup for an unknown size')};
+ const config=await(await handlePayments(req('config'),ctx,deps)).json();assert.equal(config.editions.length,2);assert.equal(config.editions[1].priceCents,12500);assert(!JSON.stringify(config).includes(secondEdition.sku));assert(!JSON.stringify(config).includes('fixture-web'));
+ assert.equal((await handlePayments(req('quote',{editionId:'not-configured',recipient:addr}),ctx,deps)).status,400);
+});
+
+test('a second size uses its own test SKU and server price through quote, checkout and receipt validation',async()=>{
+ let checkout;const deps={...defaults,env:multiEnv,makeStripe:()=>({customers:{create:async()=>({id:'cus_test'})},checkout:{sessions:{create:async p=>{checkout=p;return{livemode:false,url:'https://checkout.stripe.com/c/pay/fixture'}}}}}),fetcher:async(u,o)=>{
+  assert.equal(u,'https://v2.api.finerworks.com/v3/list_shipping_options_multiple');const order=JSON.parse(o.body).orders[0];assert.equal(order.test_mode,true);assert.equal(order.order_items[0].product_sku,secondEdition.sku);
+  return Response.json({status:{success:true},orders:[{order_po:order.order_po,options:[{id:78,rate:8.95,shipping_method:'Ground'}]}]});
+ }};
+ const quote=await(await handlePayments(req('quote',{editionId:secondEdition.id,recipient:addr,sku:'wrong',price:1}),ctx,deps)).json();assert.equal(quote.priceCents,12500);assert.equal(quote.options[0].totalCents,13395);
+ assert.equal((await handlePayments(req('checkout',{quote:quote.options[0].quote,editionId:'swan-36x43'}),ctx,deps)).status,200);assert.equal(checkout.line_items[0].price_data.unit_amount,12500);assert.match(checkout.line_items[0].price_data.product_data.name,/12 × 14/);assert.equal(checkout.metadata.sku,secondEdition.sku);assert.equal(checkout.metadata.hugs_fulfillment,'test-hold');
+ const paid={livemode:false,currency:'usd',amount_total:13395,metadata:checkout.metadata};assert.equal(validSession(paid,multiEnv.HUGS_PRINT_QUOTE_SECRET),true);assert.equal(validSession({...paid,metadata:{...paid.metadata,sku:'different'}},multiEnv.HUGS_PRINT_QUOTE_SECRET),false);
+ const changed={...multiEnv,HUGS_PRINT_TEST_EDITIONS_JSON:JSON.stringify([{...secondEdition,width:13}])};assert.equal((await handlePayments(req('checkout',{quote:quote.options[0].quote}),ctx,{...deps,env:changed})).status,400);
+});
+
+test('duplicate SKUs or invalid prices cannot appear in the sandbox catalog',async()=>{
+ const deps={...defaults,makeStripe:()=>({})};
+ for(const edit of [{sku:'AP108137P696597'},{priceCents:0}]){
+  const invalid={...multiEnv,HUGS_PRINT_TEST_EDITIONS_JSON:JSON.stringify([{...secondEdition,...edit}])};assert.equal((await handlePayments(req('config'),ctx,{...deps,env:invalid})).status,502);
+ }
 });

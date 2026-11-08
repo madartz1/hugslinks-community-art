@@ -32,6 +32,16 @@ export async function handleSandbox(request,context,{env=process.env,fetcher=fet
  if(Number(request.headers.get('content-length')||0)>4096)return json({error:'Request too large.'},413);
  let body;try{const raw=await request.text();if(raw.length>4096)return json({error:'Request too large.'},413);body=JSON.parse(raw)}catch{return json({error:'Invalid JSON.'},400)}
  if(!['product','shipping'].includes(body?.action))return json({error:'Unsupported test action.'},400);
+ return supplierRequest(body,{webKey,appKey,sku,fetcher,uuid});
+}
+
+// A configured edition supplies its own SKU. This helper never submits orders.
+export function quoteFinerWorksTestShipping(destination, {webKey,appKey,sku,fetcher=fetch,uuid=randomUUID}) {
+ if(!webKey||!appKey||!sku)return json({ok:false,testOnly:true,error:'test_configuration_incomplete'},503);
+ return supplierRequest({action:'shipping',recipient:destination},{webKey,appKey,sku,fetcher,uuid});
+}
+
+async function supplierRequest(body,{webKey,appKey,sku,fetcher,uuid}) {
  let endpoint,payload,orderPo;
  if(body.action==='product'){
   endpoint='get_product_details';payload=[{product_order_po:null,product_qty:1,product_sku:sku}];

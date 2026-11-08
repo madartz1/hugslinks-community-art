@@ -1,6 +1,6 @@
 # Swan payment sandbox
 
-The gallery draft uses Stripe Checkout at USD 444.49 plus the server-requested
+The default Swan edition uses Stripe Checkout at USD 444.49 plus the server-requested
 FinerWorks shipping quote for one unmounted 36 x 43-inch canvas. Tax is not
 calculated in the sandbox. Quotes expire after 15 minutes. The delivery address
 used for the quote is saved to the Stripe test customer; checkout does not offer
@@ -48,3 +48,27 @@ and matching SKU, a transactional order ledger, tax configuration, live keys,
 verified shipping and supplier-order submission with duplicate protection.
 
 Validation: `node --test tests/print-payments.test.mjs` and `npm run build`.
+
+## Additional sizes
+
+The preview menu is generated from the server catalog. The built-in Swan
+36 × 43-inch edition uses the existing supplier bridge. To add a verified
+Swan edition in the sandbox, set `HUGS_PRINT_TEST_EDITIONS_JSON` to an array
+of objects with `id`, `artworkId` (`archive-eye`), `width`, `height`, `material`,
+`finish`, `sku`, and `priceCents`. Set the Netlify Functions variables
+`FINERWORKS_TEST_WEB_API_KEY` and `FINERWORKS_TEST_APP_KEY` in deploy-preview
+for direct, test-mode shipping quotes for those additional SKUs. The original
+bridge can only quote its own configured SKU and is never reused for a different
+size. Use confirmed supplier SKUs and approved retail prices; no extra sizes
+are assumed by default.
+
+The chosen edition is signed into the shipping quote. A catalog change requires
+a new quote; buyers cannot supply a different SKU or price. The payment
+confirmation validates the exact signed edition and total. Older verified
+sandbox receipts remain readable.
+
+Before connecting a live edition, record its exact live FinerWorks SKU, format,
+size, finish, approved master, selling price, and verified shipping options.
+Live payments and physical orders remain disabled; the test catalog is not a
+production inventory list. Complete the order ledger and supplier submission
+with idempotency before accepting live payments.
