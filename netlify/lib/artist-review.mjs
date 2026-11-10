@@ -27,12 +27,14 @@ async function publishSubmission(artist){
     description:clean(artist.artist_statement,1800),
     medium:clean(artist.primary_medium,160),
     year:clean(artist.artwork_year,20),
-    room_images:[],published:true,featured:false,updated_at:now,
+    room_images:Array.isArray(work?.room_images)?work.room_images:[],published:true,featured:work?.featured===true,updated_at:now,
+    published_at:work?.published_at||artist.artwork_published_at||now,
+    artist_bio:clean(artist.public_bio||work?.artist_bio,800),
     source_artist_submission_id:artist.id
   };
   const i=works.findIndex(x=>x.id===rec.id);if(i>=0)works[i]=rec;else works.push(rec);
   await galleryStore.setJSON(GALLERY_KEY,{updated_at:now,works});
-  artist.gallery_artwork_id=rec.id;artist.artwork_published_at=artist.artwork_published_at||now;
+  artist.gallery_artwork_id=rec.id;artist.artwork_published_at=rec.published_at;
   return {work:rec};
 }
 return async request=>{
