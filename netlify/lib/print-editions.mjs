@@ -10,15 +10,21 @@ const inch = value => typeof value==='number'&&Number.isFinite(value)&&value>=1&
 const label = value => typeof value==='string'&&value.trim()===value&&value.length>0&&value.length<=70&&!/[<>\x00-\x1f]/.test(value);
 const sku = value => typeof value==='string'&&/^[A-Za-z0-9_-]{6,64}$/.test(value);
 
+const combination = e => JSON.stringify([e.artworkId,e.width,e.height,e.material.toLowerCase(),e.finish.toLowerCase()]);
+
 export function readTestEditions(raw) {
  if(!raw)return [...BASE_EDITIONS];
  const rows=JSON.parse(raw);
  if(!Array.isArray(rows)||rows.length>20)throw Error('Invalid test print catalog');
  const editions=[...BASE_EDITIONS],ids=new Set(editions.map(e=>e.id)),skus=new Set([...editions.map(e=>e.sku),PRIOR_SWAN_SANDBOX_SKU,RETIRED_SWAN_TEST_SKU]);
+ const combinations=new Set(editions.map(combination));
  for(const row of rows){
   if(!row||typeof row.id!=='string'||!/^[a-z0-9][a-z0-9-]{1,47}$/.test(row.id)||!Object.hasOwn(PRINT_ARTWORKS,row.artworkId)||!inch(row.width)||!inch(row.height)||!label(row.material)||!label(row.finish)||!sku(row.sku)||!Number.isSafeInteger(row.priceCents)||row.priceCents<50||row.priceCents>10000000||ids.has(row.id)||skus.has(row.sku))throw Error('Invalid or duplicate test print edition');
   const {id,artworkId,width,height,material,finish,sku:productSku,priceCents}=row;
-  editions.push({id,artworkId,width,height,material,finish,sku:productSku,priceCents});ids.add(id);skus.add(productSku);
+  const edition={id,artworkId,width,height,material,finish,sku:productSku,priceCents};
+  const key=combination(edition);
+  if(combinations.has(key))throw Error('Duplicate print size, material and finish');
+  editions.push(edition);combinations.add(key);ids.add(id);skus.add(productSku);
  }
  return editions;
 }
