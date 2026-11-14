@@ -40,12 +40,12 @@ export async function handleSandbox(request,context,{env=process.env,fetcher=fet
 }
 
 // A configured edition supplies its own SKU. This helper never submits orders.
-export function quoteFinerWorksTestShipping(destination, {webKey,appKey,sku,fetcher=fetch,uuid=randomUUID}) {
+export function quoteFinerWorksTestShipping(destination, {webKey,appKey,sku,title,fetcher=fetch,uuid=randomUUID}) {
  if(!webKey||!appKey||!sku)return json({ok:false,testOnly:true,error:'test_configuration_incomplete'},503);
- return supplierRequest({action:'shipping',recipient:destination},{webKey,appKey,sku,fetcher,uuid});
+ return supplierRequest({action:'shipping',recipient:destination},{webKey,appKey,sku,title,fetcher,uuid});
 }
 
-async function supplierRequest(body,{webKey,appKey,sku,fetcher,uuid}) {
+async function supplierRequest(body,{webKey,appKey,sku,title,fetcher,uuid}) {
  let endpoint,payload,orderPo;
  if(body.action==='product'){
   endpoint='get_product_details';payload=[{product_order_po:null,product_qty:1,product_sku:sku}];
@@ -53,7 +53,7 @@ async function supplierRequest(body,{webKey,appKey,sku,fetcher,uuid}) {
   const dest=recipient(body.recipient);if(!dest)return json({error:'Provide a valid contiguous US address for the test.'},400);
   const po='HUGS-TEST-'+uuid();orderPo=po;
   endpoint='list_shipping_options_multiple';
-  payload={orders:[{order_po:po,guest:false,recipient:{...dest,address_order_po:po},order_items:[{product_order_po:po,product_qty:1,product_sku:sku,product_title:'Swan Canvas Test'}],shipping_code:'SD',test_mode:true}],account_key:null};
+  payload={orders:[{order_po:po,guest:false,recipient:{...dest,address_order_po:po},order_items:[{product_order_po:po,product_qty:1,product_sku:sku,product_title:title||'Gallery Print Test'}],shipping_code:'SD',test_mode:true}],account_key:null};
  }
  let response,data;const ctrl=new AbortController(),timer=setTimeout(()=>ctrl.abort(),15000);
  try{

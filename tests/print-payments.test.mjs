@@ -91,7 +91,7 @@ const multiEnv={...env,HUGS_PRINT_TEST_EDITIONS_JSON:JSON.stringify([secondEditi
 
 test('configured sizes expose only customer-facing details and unknown sizes are rejected',async()=>{
  const deps={...defaults,env:multiEnv,makeStripe:()=>({}),fetcher:async()=>assert.fail('No supplier lookup for an unknown size')};
- const config=await(await handlePayments(req('config'),ctx,deps)).json();assert.equal(config.editions.length,2);assert.equal(config.editions[1].priceCents,12500);assert(!JSON.stringify(config).includes(secondEdition.sku));assert(!JSON.stringify(config).includes('fixture-web'));
+ const config=await(await handlePayments(req('config'),ctx,deps)).json();assert.equal(config.editions.length,4);assert.equal(config.editions.find(e=>e.id===secondEdition.id).priceCents,12500);assert(!JSON.stringify(config).includes(secondEdition.sku));assert(!JSON.stringify(config).includes('fixture-web'));
  assert.equal((await handlePayments(req('quote',{editionId:'not-configured',recipient:addr}),ctx,deps)).status,400);
 });
 
@@ -141,4 +141,23 @@ test('verified paid sandbox webhook creates one idempotent print order ledger re
  assert.equal((await handlePayments(req('setup',{}, {Authorization:'Bearer gallery-admin'}),ctx,galleryDeps)).status,401);
  assert.equal((await handlePayments(req('orders',undefined,{Authorization:'Bearer wrong'}),ctx,{...galleryDeps,makeOrderStore:()=>assert.fail('Invalid token cannot read the order store')})).status,401);
  assert.equal((await handlePayments(req('orders',undefined,{Authorization:'Bearer gallery-admin'}),{deploy:{context:'production'}},galleryDeps)).status,404);
+});
+
+
+test('Golden Horizon quotes and checks out under its own artwork, and mismatched art is rejected',async()=>{
+ let checkout;
+ const stripe={customers:{create:async()=>({id:'cus_test'})},checkout:{sessions:{create:async p=>{checkout=p;return{livemode:false,url:'https://checkout.stripe.com/c/pay/test'}}}}};
+ const deps={...defaults,makeStripe:()=>stripe,fetcher:async(_url,o)=>{const order=JSON.parse(o.body).orders[0];assert.equal(order.order_items[0].product_sku,'AP108137P700685');assert.equal(order.order_items[0].product_title,'Golden Horizon');return supplierReply(o,5.50)}};
+ const pick={editionId:'horizon-5x4-matte',recipient:addr};
+ assert.equal((await handlePayments(req('quote',{...pick,artworkId:'archive-eye'}),ctx,deps)).status,400);
+ const quote=await(await handlePayments(req('quote',{...pick,artworkId:'archive-horizon'}),ctx,deps)).json();
+ assert.equal(quote.options[0].totalCents,3450);
+ assert.equal((await handlePayments(req('checkout',{quote:quote.options[0].quote}),ctx,deps)).status,200);
+ assert.match(checkout.line_items[0].price_data.product_data.name,/Golden Horizon/);
+ assert.match(checkout.success_url,/artwork=archive-horizon&session_id=/);
+ assert.match(checkout.cancel_url,/artwork=archive-horizon&cancelled=1$/);
+ const paid={...good,amount_total:3450,metadata:{...checkout.metadata,hugs_test_payment_verified:'true'}};
+ const paidDeps={...defaults,makeStripe:()=>({checkout:{sessions:{retrieve:async()=>paid}}})};
+ assert.equal((await handlePayments(req('status&session_id='+good.id+'&artwork=archive-eye'),ctx,paidDeps)).status,404);
+ assert.equal((await(await handlePayments(req('status&session_id='+good.id+'&artwork=archive-horizon'),ctx,paidDeps)).json()).webhookVerified,true);
 });

@@ -56,7 +56,7 @@ Validation: `node --test tests/print-payments.test.mjs` and `npm run build`.
 The preview menu is generated from the server catalog. The built-in Swan
 36 × 43-inch edition quotes its current SKU directly with FinerWorks. To add a verified
 Swan edition in the sandbox, set `HUGS_PRINT_TEST_EDITIONS_JSON` to an array
-of objects with `id`, `artworkId` (`archive-eye`), `width`, `height`, `material`,
+of objects with `id`, `artworkId` (`archive-eye` or `archive-horizon`), `width`, `height`, `material`,
 `finish`, `sku`, and `priceCents`. Set the Netlify Functions variables
 `FINERWORKS_TEST_WEB_API_KEY` and `FINERWORKS_TEST_APP_KEY` in deploy-preview
 for direct, test-mode shipping quotes for those additional SKUs. The legacy bridge is not used by checkout. Use confirmed supplier SKUs and approved retail prices; no extra sizes
@@ -83,3 +83,13 @@ with idempotency before accepting live payments.
 - $27.59 Standard tube shipping to New York ZIP 10118 was verified for the
   previous edition. Compare against a fresh FinerWorks quote; no rate is
   hardcoded. No physical order is submitted from this sandbox.
+
+
+## Additional built-in sandbox editions
+
+- Swan — The Eye, 18 × 22-inch stretched Artisan Archival Canvas with
+  Floater Black 1: `AP108137P700682`, $220 supplier cost, $499 draft sandbox retail.
+- Golden Horizon, 5 × 4-inch borderless Archival Matte Paper, unframed:
+  `AP108137P700685`, $7 supplier cost, $29 draft sandbox retail.
+- Shipping is quoted per SKU and address. Draft sandbox prices do not configure
+  or authorize a live sale.

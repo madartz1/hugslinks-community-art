@@ -1,7 +1,7 @@
 import Stripe from 'stripe';
 import { createHash, createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
 import { getDeployStore, getStore } from '@netlify/blobs';
-import { SWAN_EDITION, RETIRED_SWAN_TEST_SKU, readTestEditions, editionRevision, editionSummary, sizeLabel } from './print-editions.mjs';
+import { PRINT_ARTWORKS, SWAN_EDITION, RETIRED_SWAN_TEST_SKU, readTestEditions, editionRevision, editionSummary, sizeLabel } from './print-editions.mjs';
 import { quoteFinerWorksTestShipping } from './print-sandbox.mjs';
 
 export const PRICE = SWAN_EDITION.priceCents;
@@ -127,6 +127,9 @@ export async function handlePayments(request,context,{env=process.env,fetcher=fe
   if(action==='status'){
    const id=new URL(request.url).searchParams.get('session_id');if(!/^cs_test_[a-zA-Z0-9]+$/.test(id||''))return json({error:'Invalid session'},400);
    const s=await stripe.checkout.sessions.retrieve(id);if(!validSession(s,secret))return json({error:'Unknown print test'},404);
+   const artworkId=s.metadata.artwork_id||SWAN_EDITION.artworkId;
+   const expectedArtwork=url.searchParams.get('artwork');
+   if(expectedArtwork&&expectedArtwork!==artworkId)return json({error:'This receipt belongs to a different artwork'},404);
    const paid=s.payment_status==='paid';
    return json({testOnly:true,paid,webhookVerified:paid&&s.metadata.hugs_test_payment_verified==='true',priceCents:Number(s.metadata.price),shippingCents:Number(s.metadata.shipping),totalCents:s.amount_total,...(s.metadata.print_size?{size:s.metadata.print_size}:{}),fulfillment:'test-hold'});
   }
@@ -135,9 +138,9 @@ export async function handlePayments(request,context,{env=process.env,fetcher=fe
   let body;try{const raw=await request.text();if(raw.length>8000)return json({error:'Request too large'},413);body=JSON.parse(raw)}catch{return json({error:'Invalid request'},400)}
   if(action==='quote'){
    const editions=readTestEditions(env.HUGS_PRINT_TEST_EDITIONS_JSON),edition=editions.find(e=>e.id===(body.editionId??SWAN_EDITION.id));
-   if(!edition)return json({error:'Select a configured print size.'},400);
+   if(!edition||(body.artworkId&&body.artworkId!==edition.artworkId))return json({error:'Select an available edition of this artwork.'},400);
    let recipient;try{recipient=cleanRecipient(body.recipient)}catch(e){return json({error:e.message},400)}
-   const res=await quoteFinerWorksTestShipping(recipient,{webKey:env.FINERWORKS_TEST_WEB_API_KEY,appKey:env.FINERWORKS_TEST_APP_KEY,sku:edition.sku,fetcher});
+   const res=await quoteFinerWorksTestShipping(recipient,{webKey:env.FINERWORKS_TEST_WEB_API_KEY,appKey:env.FINERWORKS_TEST_APP_KEY,sku:edition.sku,title:PRINT_ARTWORKS[edition.artworkId],fetcher});
    const data=await res.json();
    if(!res.ok||!data.ok){
     const messages={
@@ -160,9 +163,10 @@ export async function handlePayments(request,context,{env=process.env,fetcher=fe
    const r=q.recipient,edition=editions.find(e=>e.id===(q.editionId??SWAN_EDITION.id));
    const customer=await stripe.customers.create({name:r.first_name+' '+r.last_name,shipping:{name:r.first_name+' '+r.last_name,phone:r.phone,address:{line1:r.address_1,line2:r.address_2||undefined,city:r.city,state:r.state_code,postal_code:r.zip_postal_code,country:'US'}},metadata:{hugs_sandbox:'art-print'}},{idempotencyKey:'hugs-print-customer-'+q.nonce});
    const item=(name,amount)=>({price_data:{currency:'usd',unit_amount:amount,product_data:{name}},quantity:1});
+   const returnPage=origin+'/buy-print.html?artwork='+encodeURIComponent(edition.artworkId);
    const metadata={hugs_print:'swan-test-v2',edition_id:edition.id,artwork_id:edition.artworkId,sku:edition.sku,price:String(q.price),shipping:String(q.shipping),shipping_id:String(q.shippingId),quote_nonce:q.nonce,print_size:sizeLabel(edition),hugs_fulfillment:'test-hold'};
    metadata.print_seal=sessionSeal(metadata,secret);
-   const session=await stripe.checkout.sessions.create({mode:'payment',branding_settings:{display_name:'HL Art Gallery'},customer:customer.id,line_items:[item('Swan — The Eye · '+sizeLabel(edition)+' · '+edition.material+' · '+edition.finish,q.price),item(q.method+' shipping',q.shipping)],success_url:origin+'/buy-print.html?artwork=archive-eye&session_id={CHECKOUT_SESSION_ID}',cancel_url:origin+'/buy-print.html?artwork=archive-eye&cancelled=1',expires_at:Math.floor(now()/1000)+1800,integration_identifier:'hugs_art_'+Array.from(createHash('sha256').update(q.nonce).digest().subarray(0,8),b=>String.fromCharCode(97+b%26)).join(''),metadata,custom_text:{submit:{message:'Sandbox test only. No print will be produced. Tax is not calculated in this test. Delivery quote: '+r.address_1+', '+r.city+', '+r.state_code+' '+r.zip_postal_code}}},{idempotencyKey:'hugs-print-checkout-'+q.nonce});
+   const session=await stripe.checkout.sessions.create({mode:'payment',branding_settings:{display_name:'HL Art Gallery'},customer:customer.id,line_items:[item(PRINT_ARTWORKS[edition.artworkId]+' · '+sizeLabel(edition)+' · '+edition.material+' · '+edition.finish,q.price),item(q.method+' shipping',q.shipping)],success_url:returnPage+'&session_id={CHECKOUT_SESSION_ID}',cancel_url:returnPage+'&cancelled=1',expires_at:Math.floor(now()/1000)+1800,integration_identifier:'hugs_art_'+Array.from(createHash('sha256').update(q.nonce).digest().subarray(0,8),b=>String.fromCharCode(97+b%26)).join(''),metadata,custom_text:{submit:{message:'Sandbox test only. No print will be produced. Tax is not calculated in this test. Delivery quote: '+r.address_1+', '+r.city+', '+r.state_code+' '+r.zip_postal_code}}},{idempotencyKey:'hugs-print-checkout-'+q.nonce});
    if(session.livemode!==false||!session.url?.startsWith('https://checkout.stripe.com/'))throw Error('Unexpected checkout');
    return json({testOnly:true,url:session.url});
   }
