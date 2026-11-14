@@ -73,17 +73,13 @@ Live payments and physical orders remain disabled; the test catalog is not a
 production inventory list. Complete the order ledger and supplier submission
 with idempotency before accepting live payments.
 
-## Current Swan edition verification
+## Enhanced Swan sandbox edition
 
-- Current Virtual Inventory SKU: `AP108137P696937`; 36 × 43 inches, unmounted
-  Artisan Archival Canvas. Retail remains $444.49.
-- Manual FinerWorks checkout quoted $201.00 plus $27.59 Standard tube shipping
-  to the sample New York destination (ZIP 10118), for $228.59 at the supplier.
-  At the gallery retail price, that rate gives $472.08 before tax. This is a
-  comparison point for the same address and method, not a fixed rate.
-- The older SKU `AP108137P696597` is accepted only for historical verified
-  sandbox receipts, never for a new quote or checkout. Its $6.95 rate is not
-  substituted when current supplier configuration is missing.
-- The next real integration check is the current SKU's shipping quote and
-  a sandbox payment with the exact selected method. No physical order is
-  submitted. Live sales remain off; manual order review precedes fulfillment.
+- Default preview SKU: `AP108137P700678`, 36 × 43-inch unmounted Artisan
+  Archival Canvas, using the enhanced detail proof. Gallery price: $444.49.
+- `AP108137P696937` was the previous preview SKU. Existing verified receipts
+  remain readable, but requests for new quotes and checkout use the enhanced
+  SKU. The earlier `AP108137P696597` remains supported for historical receipts.
+- $27.59 Standard tube shipping to New York ZIP 10118 was verified for the
+  previous edition. Compare against a fresh FinerWorks quote; no rate is
+  hardcoded. No physical order is submitted from this sandbox.

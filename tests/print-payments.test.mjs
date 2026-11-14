@@ -16,22 +16,22 @@ test('production and live keys fail closed before Stripe access',async()=>{
  assert.equal((await handlePayments(req('config'),ctx,{...deps,env:{...env,STRIPE_SECRET_KEY:'sk_live_dummy'}})).status,503);
 });
 test('quote rejects tampered amounts, invalid MACs and expired quotes',()=>{
- const q={sku:'AP108137P696937',price:PRICE,shipping:2759,nonce:'random',expires:1000};
+ const q={sku:'AP108137P700678',price:PRICE,shipping:2759,nonce:'random',expires:1000};
  const token=signQuote(q,'secret');assert.equal(readQuote(token,'secret',999).shipping,2759);
  assert.throws(()=>readQuote(token,'secret',1001));assert.throws(()=>readQuote(token,'wrong',999));
  assert.throws(()=>readQuote(signQuote({...q,price:1},'secret'),'secret',999));
- assert.throws(()=>readQuote(signQuote({...q,sku:'AP108137P696597'},'secret'),'secret',999));
+ for(const sku of ['AP108137P696597','AP108137P696937'])assert.throws(()=>readQuote(signQuote({...q,sku},'secret'),'secret',999));
 });
 function supplierReply(request,rate=27.59){const order=JSON.parse(request.body).orders[0];return Response.json({status:{success:true},orders:[{order_po:order.order_po,options:[{id:0,shipping_code:'SD',rate,shipping_method:'Standard - Ship in Tube Preferred',transit_time:'1–5 days <a>map</a>'}]}]})}
 
 test('shipping quotes the current Swan SKU directly in test mode and never accepts buyer pricing',async()=>{
  let sent;const res=await handlePayments(req('quote',{recipient:addr,price:1,sku:'AP108137P696597'}),ctx,{...defaults,makeStripe:()=>({}),fetcher:async(u,o)=>{assert.equal(u,'https://v2.api.finerworks.com/v3/list_shipping_options_multiple');sent=JSON.parse(o.body).orders[0];return supplierReply(o)}});
- const result=await res.json();assert.equal(sent.test_mode,true);assert.equal(sent.shipping_code,'SD');assert.equal(sent.order_items[0].product_sku,'AP108137P696937');assert.equal(sent.recipient.zip_postal_code,addr.zip_postal_code);assert.equal(result.options[0].totalCents,47208);assert.doesNotMatch(result.options[0].transitTime,/<a>/);const q=readQuote(result.options[0].quote,env.HUGS_PRINT_QUOTE_SECRET);assert.equal(q.price,44449);assert.equal(q.sku,'AP108137P696937');assert.equal(q.shippingId,'SD');assert.equal(sent.recipient.address_order_po,sent.order_po);
+ const result=await res.json();assert.equal(sent.test_mode,true);assert.equal(sent.shipping_code,'SD');assert.equal(sent.order_items[0].product_sku,'AP108137P700678');assert.equal(sent.recipient.zip_postal_code,addr.zip_postal_code);assert.equal(result.options[0].totalCents,47208);assert.doesNotMatch(result.options[0].transitTime,/<a>/);const q=readQuote(result.options[0].quote,env.HUGS_PRINT_QUOTE_SECRET);assert.equal(q.price,44449);assert.equal(q.sku,'AP108137P700678');assert.equal(q.shippingId,'SD');assert.equal(sent.recipient.address_order_po,sent.order_po);
 });
 test('checkout locks artwork and shipping amounts, customer address and idempotency',async()=>{
  let params,customer;const stripe={customers:{create:async p=>{customer=p;return{id:'cus_test'}}},checkout:{sessions:{create:async p=>{params=p;return{livemode:false,url:'https://checkout.stripe.com/c/pay/test'}}}}};
- const q=signQuote({sku:'AP108137P696937',price:PRICE,shipping:2759,method:'Ground',recipient:addr,nonce:'abcdefgh',expires:Date.now()+10000,shippingId:'78'},env.HUGS_PRINT_QUOTE_SECRET);
- const res=await handlePayments(req('checkout',{quote:q,price:1}),ctx,{...defaults,makeStripe:()=>stripe});assert.equal(res.status,200);assert.equal(params.line_items[0].price_data.unit_amount,44449);assert.equal(params.line_items[1].price_data.unit_amount,2759);assert.equal(params.metadata.hugs_fulfillment,'test-hold');assert.equal(customer.shipping.address.line1,addr.address_1);assert.equal(params.payment_method_types,undefined);
+ const q=signQuote({sku:'AP108137P700678',price:PRICE,shipping:2759,method:'Ground',recipient:addr,nonce:'abcdefgh',expires:Date.now()+10000,shippingId:'78'},env.HUGS_PRINT_QUOTE_SECRET);
+ const res=await handlePayments(req('checkout',{quote:q,price:1}),ctx,{...defaults,makeStripe:()=>stripe});assert.equal(res.status,200);assert.equal(params.line_items[0].price_data.unit_amount,44449);assert.equal(params.line_items[1].price_data.unit_amount,2759);assert.equal(params.metadata.hugs_fulfillment,'test-hold');assert.equal(params.metadata.sku,'AP108137P700678');assert.equal(customer.shipping.address.line1,addr.address_1);assert.equal(params.payment_method_types,undefined);
 });
 test('invalid webhook signatures cannot change payment records',async()=>{
  let changed=false;const stripe=new Stripe('sk_test_dummy');stripe.checkout.sessions.update=async()=>{changed=true};
@@ -108,7 +108,7 @@ test('a second size uses its own test SKU and server price through quote, checko
 
 test('duplicate SKUs or invalid prices cannot appear in the sandbox catalog',async()=>{
  const deps={...defaults,makeStripe:()=>({})};
- for(const edit of [{sku:'AP108137P696597'},{sku:'AP108137P696937'},{priceCents:0}]){
+ for(const edit of [{sku:'AP108137P696597'},{sku:'AP108137P696937'},{sku:'AP108137P700678'},{priceCents:0}]){
   const invalid={...multiEnv,HUGS_PRINT_TEST_EDITIONS_JSON:JSON.stringify([{...secondEdition,...edit}])};assert.equal((await handlePayments(req('config'),ctx,{...deps,env:invalid})).status,502);
  }
 });
