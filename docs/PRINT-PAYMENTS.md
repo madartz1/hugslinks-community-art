@@ -93,3 +93,55 @@ with idempotency before accepting live payments.
   `AP108137P700685`, $7 supplier cost, $29 draft sandbox retail.
 - Shipping is quoted per SKU and address. Draft sandbox prices do not configure
   or authorize a live sale.
+
+## Proposed production order release
+
+Approve each artwork / SKU / size / finish and its exact print file once in the
+production catalog. A verified paid order for that edition should not need
+another artist or admin approval. Use `assessPrintOrder` from
+`netlify/lib/print-order-approval.mjs` at production release time, after verifying
+payment and refreshing the supplier quote for the exact SKU, address, and shipping
+service. Do not take payment on quote-only listings.
+
+- Calculate contribution after supplier print cost, supplier shipping, any other
+  per-order supplier costs (including supplier tax), and Stripe's fee or a
+  conservative fee reserve. Exclude buyer sales tax from revenue. The floor is
+  configurable in cents; zero holds orders only when projected contribution is
+  negative. Choose a higher floor if desired before launch.
+- Compare the current supplier shipping cost with the supplier cost saved in the
+  accepted checkout quote, separately from what the buyer was charged. Hold on
+  a rate, destination, or service discrepancy. Derive the destination key on the
+  server from the complete normalized address, including apartment, and avoid
+  logging the address in decision details. Never increase a buyer's charge
+  automatically.
+- Hold on missing or expired cost data, quote or payment mismatch, or an edition
+  that is no longer approved. A hold is a paid order awaiting review, not a
+  rejection or refund. Show the exact reason and let staff resolve it or refund.
+- Production still needs payment verification, a durable fulfillment queue with
+  one supplier submission per order, recovery for uncertain supplier responses,
+  and tracking. Persist the approval result and supplier request identifier before
+  submission. On a retry, reconcile supplier status before attempting to
+  submit again. The current sandbox does not submit any supplier orders.
+
+### Preview rehearsal
+
+With `HUGS_PRINT_APPROVAL_PREVIEW=true` scoped to Deploy Previews, new sandbox
+checkouts record a signed address fingerprint and the accepted service. After a
+verified sandbox payment, the app refreshes the test shipping quote and creates
+one durable ledger entry for either an automatic approval or an exception.
+Print Order Review shows the result and reason. The simulated release reference
+is never sent to FinerWorks. The three built-in editions use their prior test
+production costs and a fee estimate for this rehearsal. Live release must use
+verified live costs and a separate supplier submission worker. Old test
+checkouts keep their original behavior.
+
+Before enabling live supplier submission, confirm that the selected shipping
+service and landed cost can be enforced when the order is submitted. FinerWorks
+documents that an unavailable service can fall back to the first available
+rate, and that validation-only does not validate price. A refreshed quote is
+therefore not a supplier price or service lock. Until that is resolved, keep
+actual supplier submissions under review. Never retry an ambiguous submission
+just because the first status lookup returns no result; reconcile it by the
+stable purchase order reference first.
+
+Supplier reference: https://v2.api.finerworks.com/Documentation/Troubleshooting

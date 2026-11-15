@@ -161,3 +161,57 @@ test('Golden Horizon quotes and checks out under its own artwork, and mismatched
  assert.equal((await handlePayments(req('status&session_id='+good.id+'&artwork=archive-eye'),ctx,paidDeps)).status,404);
  assert.equal((await(await handlePayments(req('status&session_id='+good.id+'&artwork=archive-horizon'),ctx,paidDeps)).json()).webhookVerified,true);
 });
+
+test('verified preview payments simulate one release or flag a shipping exception; no order is sent',async()=>{
+ for(const scenario of ['approved','rate changed','address changed','provider unavailable']){
+  let checkout,shipping,paidSession,saved,quoteCalls=0,successfulWrites=0;
+  const stripe=new Stripe('sk_test_dummy');
+  stripe.customers.create=async p=>{shipping=p.shipping;return{id:'cus_test_preview'}};
+  stripe.customers.retrieve=async()=>({
+   livemode:false,shipping:scenario==='address changed'?{...shipping,address:{...shipping.address,line2:'Apt 99'}}:shipping
+  });
+  stripe.checkout.sessions.create=async p=>{checkout=p;return{livemode:false,url:'https://checkout.stripe.com/c/pay/test'}};
+  stripe.checkout.sessions.retrieve=async()=>paidSession;
+  stripe.checkout.sessions.update=async()=>{assert.ok(saved,'Persist the approval before marking a receipt verified')};
+  const deps={...defaults,env:{...env,HUGS_PRINT_APPROVAL_PREVIEW:'true'},makeStripe:()=>stripe,
+   makeOrderStore:()=>({
+    get:async()=>saved,
+    setJSON:async(_key,record,options)=>{
+     assert.equal(options.onlyIfNew,true);
+     if(saved)return{modified:false};
+     saved=record;successfulWrites++;return{modified:true};
+    }
+   }),
+   fetcher:async(u,o)=>{
+    assert.equal(u,'https://v2.api.finerworks.com/v3/list_shipping_options_multiple');
+    assert.equal(JSON.parse(o.body).orders[0].test_mode,true);
+    ++quoteCalls;
+    if(quoteCalls>1&&scenario==='provider unavailable')return new Response(null,{status:503});
+    return supplierReply(o,quoteCalls>1&&scenario==='rate changed'?7.95:6.95);
+   }};
+  const quote=await(await handlePayments(req('quote',{editionId:'horizon-5x4-matte',recipient:addr}),ctx,deps)).json();
+  assert.equal((await handlePayments(req('checkout',{quote:quote.options[0].quote}),ctx,deps)).status,200);
+  assert.equal(checkout.metadata.hugs_print,'swan-test-v3');
+  assert.ok(!JSON.stringify(checkout.metadata).includes(addr.address_1));
+  paidSession={...good,customer:'cus_test_preview',amount_total:3595,metadata:checkout.metadata};
+  assert.equal(validSession({...paidSession,metadata:{...paidSession.metadata,destination_key:'changed'}},env.HUGS_PRINT_QUOTE_SECRET),false);
+  const event=JSON.stringify({id:'evt_release',type:'checkout.session.completed',livemode:false,data:{object:{id:good.id}}});
+  const signature=Stripe.webhooks.generateTestHeaderString({payload:event,secret:'whsec_test'});
+  const invoke=()=>handlePayments(new Request(url+'?action=webhook',{method:'POST',headers:{'stripe-signature':signature},body:event}),ctx,deps);
+  const results=await Promise.all([invoke(),invoke()]);
+  assert.deepEqual(results.map(r=>r.status),[200,200]);
+  assert.equal((await invoke()).status,200);
+  assert.equal(successfulWrites,1);
+  assert.equal(saved.fulfillment,'test-hold');
+  assert.ok(!JSON.stringify(saved).includes(addr.address_1));
+  if(scenario==='approved'){
+   assert.equal(saved.reviewStatus,'auto_approved_test_hold');
+   assert.match(saved.releaseReference,/^HL-TEST-/);
+   assert.equal(saved.approval.profitCents,2024);
+  }else{
+   assert.equal(saved.reviewStatus,'test_exception');
+   assert.equal(saved.approval.reason,scenario==='provider unavailable'?'supplier_quote_unavailable':'shipping_discrepancy');
+   assert.equal(saved.releaseReference,undefined);
+  }
+ }
+});

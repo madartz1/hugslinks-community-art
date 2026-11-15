@@ -18,7 +18,7 @@
  $('printTitle').textContent=work.title;$('printArtist').textContent=work.artist;$('printDescription').textContent=work.description;
  $('artImage').src=work.image;$('artImage').alt=work.title+' by '+work.artist;
  if(id==='archive-eye')$('pilotEdition').hidden=false;
- $('backToArt').href=galleryLink;
+ $('backToArt').href='print-options.html?artwork='+encodeURIComponent(id);
  startCheckout();
 
  function showReceipt(session){
@@ -113,7 +113,15 @@
    clearQuote();
   }
   setChoices(size,editions.map(e=>e.size));
+  const requested=editions.find(e=>e.id===params.get('edition'));
+  if(requested)size.value=requested.size;
   syncChoices();
+  if(requested){
+   material.value=requested.material;
+   syncChoices();
+   finish.value=requested.finish;
+   clearQuote();
+  }
   size.addEventListener('change',syncChoices);
   material.addEventListener('change',syncChoices);
   finish.addEventListener('change',()=>clearQuote());

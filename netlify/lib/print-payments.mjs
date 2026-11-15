@@ -3,6 +3,7 @@ import { createHash, createHmac, randomBytes, timingSafeEqual } from 'node:crypt
 import { getDeployStore, getStore } from '@netlify/blobs';
 import { PRINT_ARTWORKS, SWAN_EDITION, RETIRED_SWAN_TEST_SKU, readTestEditions, editionRevision, editionSummary, sizeLabel } from './print-editions.mjs';
 import { quoteFinerWorksTestShipping } from './print-sandbox.mjs';
+import { assessPrintOrder } from './print-order-approval.mjs';
 
 export const PRICE = SWAN_EDITION.priceCents;
 const PREVIEW_ORIGIN = 'https://deploy-preview-4--hugslinks-community-art.netlify.app';
@@ -52,12 +53,68 @@ export function cleanRecipient(v){
 }
 const plain=s=>String(s||'').replace(/<[^>]*>/g,'').slice(0,160);
 const signedSessionFields = ['hugs_print','edition_id','artwork_id','sku','price','shipping','shipping_id','quote_nonce','print_size'];
-const sessionSeal=(metadata,secret)=>hmac(JSON.stringify(signedSessionFields.map(key=>metadata[key])),secret);
+const sessionSeal=(metadata,secret)=>{
+ const fields=metadata.hugs_print==='swan-test-v3'?
+  [...signedSessionFields,'edition_revision','destination_key','shipping_method']:signedSessionFields;
+ return hmac(JSON.stringify(fields.map(key=>metadata[key])),secret);
+};
+const destinationKey=(address,secret)=>hmac(JSON.stringify(
+ ['address_1','address_2','city','state_code','zip_postal_code','country_code'].map(key=>address[key].toLowerCase().replace(/\s+/g,' '))
+),secret);
+
+const sandboxPrintCosts = new Map([
+ ['AP108137P700678',20100], ['AP108137P700682',22000], ['AP108137P700685',700]
+]);
+async function simulateRelease({session,stripe,env,secret,fetcher,now}){
+ const m=session.metadata;
+ const review=reason=>({status:'needs_review',reason});
+ try {
+  if(env.HUGS_PRINT_APPROVAL_PREVIEW!=='true')return review('automation_paused');
+  const edition=readTestEditions(env.HUGS_PRINT_TEST_EDITIONS_JSON).find(e=>e.id===m.edition_id);
+  if(!edition||edition.sku!==m.sku||editionRevision(edition)!==m.edition_revision
+     ||!sandboxPrintCosts.has(m.sku))return review('edition_not_approved');
+  if(typeof session.customer!=='string'||!session.customer)return review('shipping_discrepancy');
+  const customer=await stripe.customers.retrieve(session.customer),shipping=customer.shipping;
+  if(customer.livemode!==false||customer.deleted||!shipping?.address)return review('shipping_discrepancy');
+  const a=shipping.address;
+  if(a.country!=='US')return review('shipping_discrepancy');
+  let dest;
+  try {
+   // In the sandbox, only the address and phone need to match the accepted
+   // shipment. The recipient name is not part of the shipping comparison.
+   dest=cleanRecipient({first_name:'Gallery',last_name:'Test',address_1:a.line1,address_2:a.line2,
+    city:a.city,state_code:a.state,zip_postal_code:a.postal_code,phone:shipping.phone});
+  } catch {return review('shipping_discrepancy')}
+  const key=destinationKey(dest,secret);
+  if(!equal(key,m.destination_key))return review('shipping_discrepancy');
+  const response=await quoteFinerWorksTestShipping(dest,{sku:m.sku,title:PRINT_ARTWORKS[edition.artworkId],
+   webKey:env.FINERWORKS_TEST_WEB_API_KEY,appKey:env.FINERWORKS_TEST_APP_KEY,fetcher});
+  if(!response.ok)return review('supplier_quote_unavailable');
+  const {options}=await response.json();
+  const option=options?.find(o=>o.automationReady&&(o.code||o.id)===m.shipping_id&&plain(o.method)===m.shipping_method);
+  if(!option)return review('shipping_discrepancy');
+  // Sandbox costs and fees are estimates to exercise the decision, not live
+  // FinerWorks totals or Stripe's actual fees.
+  const feeEstimate=Math.ceil(session.amount_total*.035)+50;
+  return assessPrintOrder({
+   now:now(),
+   order:{paymentVerified:true,paymentStatus:'paid',refunded:false,currency:session.currency,
+    editionId:m.edition_id,editionRevision:m.edition_revision,sku:m.sku,printCents:Number(m.price),
+    shippingChargedCents:Number(m.shipping),taxCollectedCents:0,totalPaidCents:session.amount_total,
+    paymentFeeCents:feeEstimate,quotedSupplierShippingCents:Number(m.shipping),
+    shippingService:m.shipping_id,destinationKey:m.destination_key},
+   edition:{...edition,revision:editionRevision(edition),approvedForPrint:true},
+   supplier:{available:true,sku:edition.sku,currency:option.currency.toLowerCase(),expiresAt:now()+60_000,
+    printCents:sandboxPrintCosts.get(m.sku),shippingCents:option.rateCents,
+    otherCostCents:0,shippingService:option.code||option.id,destinationKey:key}
+  });
+ }catch{return review('supplier_quote_unavailable')}
+}
 export function validSession(s,secret){
  const m=s?.metadata,price=Number(m?.price),shipping=Number(m?.shipping);
  if(s?.livemode!==false||s.currency!=='usd'||!Number.isSafeInteger(price)||price<50||price>10000000||!Number.isSafeInteger(shipping)||shipping<0||shipping>100000||s.amount_total!==price+shipping)return false;
  if(m.hugs_print==='swan-test-v1')return m.sku===RETIRED_SWAN_TEST_SKU&&price===PRICE;
- return m.hugs_print==='swan-test-v2'&&!!secret&&equal(m.print_seal,sessionSeal(m,secret));
+ return ['swan-test-v2','swan-test-v3'].includes(m.hugs_print)&&!!secret&&equal(m.print_seal,sessionSeal(m,secret));
 }
 
 export async function handlePayments(request,context,{env=process.env,fetcher=fetch,makeStripe=key=>new Stripe(key,{apiVersion:'2026-09-30.endive'}),makeStore=()=>getStore({name:'print-checkout-preview-4-config',consistency:'strong'}),makeOrderStore=orderStoreDefault,readLegacyWebhook=deployID=>getDeployStore({name:'print-checkout-config',deployID,consistency:'strong'}).get('webhook',{type:'json'}),now=()=>Date.now()}={}){
@@ -78,7 +135,7 @@ export async function handlePayments(request,context,{env=process.env,fetcher=fe
   const directAvailable=!!(env.FINERWORKS_TEST_WEB_API_KEY&&env.FINERWORKS_TEST_APP_KEY);
   if(action==='config'){
    const editions=readTestEditions(env.HUGS_PRINT_TEST_EDITIONS_JSON);
-   return json({enabled:!!webhook?.secret&&directAvailable,quoteAvailable:directAvailable,testOnly:true,priceCents:PRICE,editions:editions.map(e=>editionSummary(e,directAvailable)),shippingCalculated:directAvailable,fulfillment:'test-hold',taxCalculated:false});
+   return json({enabled:!!webhook?.secret&&directAvailable,quoteAvailable:directAvailable,testOnly:true,priceCents:PRICE,editions:editions.map(e=>editionSummary(e,directAvailable)),shippingCalculated:directAvailable,fulfillment:'test-hold',taxCalculated:false,approvalRehearsal:env.HUGS_PRINT_APPROVAL_PREVIEW==='true'});
   }
   if(action==='setup'){
    if(!canSetup())return json({error:'Unauthorized'},401);
@@ -97,14 +154,22 @@ export async function handlePayments(request,context,{env=process.env,fetcher=fe
    if(!validSession(session,secret))return json({error:'Unexpected payment details'},400);
    if(event.type==='checkout.session.async_payment_failed')return json({received:true});
    if(session.payment_status!=='paid')return json({received:true,pending:true});
-   await stripe.checkout.sessions.update(session.id,{metadata:{hugs_test_payment_verified:'true',hugs_fulfillment:'test-hold'}},{idempotencyKey:'hugs-print-verified-'+session.id});
    const orders=makeOrderStore();
    const existing=await orders.get('order:'+session.id,{type:'json'});
    if(!existing){
     const m=session.metadata||{};
     const order={id:session.id,createdAt:now(),updatedAt:now(),reviewStatus:'paid_pending_review',testOnly:true,artworkId:m.artwork_id,editionId:m.edition_id,printSize:m.print_size,sku:m.sku,priceCents:Number(m.price),shippingCents:Number(m.shipping),totalCents:Number(session.amount_total),stripeSessionId:session.id,paymentStatus:session.payment_status,fulfillment:'test-hold'};
+    if(m.hugs_print==='swan-test-v3'){
+     order.approval=await simulateRelease({session,stripe,env,secret,fetcher,now});
+     const approved=order.approval.status==='auto_approved';
+     order.reviewStatus=approved?'auto_approved_test_hold':'test_exception';
+     // The decision and one stable simulated release reference are persisted
+     // together. Retries cannot enqueue a second record; nothing is sent.
+     if(approved)order.releaseReference='HL-TEST-'+createHash('sha256').update(session.id).digest('hex').slice(0,24);
+    }
     await orders.setJSON('order:'+session.id,order,{onlyIfNew:true});
    }
+   await stripe.checkout.sessions.update(session.id,{metadata:{hugs_test_payment_verified:'true',hugs_fulfillment:'test-hold'}},{idempotencyKey:'hugs-print-verified-'+session.id});
    return json({received:true,testOnly:true});
   }
   if(action==='orders'){
@@ -120,6 +185,7 @@ export async function handlePayments(request,context,{env=process.env,fetcher=fe
    const id=typeof body?.id==='string'?body.id:'';const next=typeof body?.reviewStatus==='string'?body.reviewStatus:'';
    if(!/^cs_test_[A-Za-z0-9]+$/.test(id)||!['paid_pending_review','approved_test_hold','rejected'].includes(next))return json({error:'Invalid order review update'},400);
    const current=await orders.get('order:'+id,{type:'json'});if(!current)return json({error:'Order not found'},404);
+   if(current.reviewStatus==='auto_approved_test_hold')return json({error:'This sandbox order was already approved automatically.'},409);
    if(current.reviewStatus==='rejected'&&next==='approved_test_hold')return json({error:'Rejected test orders cannot be reopened in this preview.'},409);
    current.reviewStatus=next;current.updatedAt=now();current.reviewedAt=now();await orders.setJSON('order:'+id,current);
    return json({ok:true,testOnly:true,order:{...current,customer:undefined}});
@@ -165,6 +231,10 @@ export async function handlePayments(request,context,{env=process.env,fetcher=fe
    const item=(name,amount)=>({price_data:{currency:'usd',unit_amount:amount,product_data:{name}},quantity:1});
    const returnPage=origin+'/buy-print.html?artwork='+encodeURIComponent(edition.artworkId);
    const metadata={hugs_print:'swan-test-v2',edition_id:edition.id,artwork_id:edition.artworkId,sku:edition.sku,price:String(q.price),shipping:String(q.shipping),shipping_id:String(q.shippingId),quote_nonce:q.nonce,print_size:sizeLabel(edition),hugs_fulfillment:'test-hold'};
+   if(env.HUGS_PRINT_APPROVAL_PREVIEW==='true'&&q.revision){
+    Object.assign(metadata,{hugs_print:'swan-test-v3',edition_revision:q.revision,
+     destination_key:destinationKey(r,secret),shipping_method:q.method});
+   }
    metadata.print_seal=sessionSeal(metadata,secret);
    const session=await stripe.checkout.sessions.create({mode:'payment',branding_settings:{display_name:'HL Art Gallery'},customer:customer.id,line_items:[item(PRINT_ARTWORKS[edition.artworkId]+' · '+sizeLabel(edition)+' · '+edition.material+' · '+edition.finish,q.price),item(q.method+' shipping',q.shipping)],success_url:returnPage+'&session_id={CHECKOUT_SESSION_ID}',cancel_url:returnPage+'&cancelled=1',expires_at:Math.floor(now()/1000)+1800,integration_identifier:'hugs_art_'+Array.from(createHash('sha256').update(q.nonce).digest().subarray(0,8),b=>String.fromCharCode(97+b%26)).join(''),metadata,custom_text:{submit:{message:'Sandbox test only. No print will be produced. Tax is not calculated in this test. Delivery quote: '+r.address_1+', '+r.city+', '+r.state_code+' '+r.zip_postal_code}}},{idempotencyKey:'hugs-print-checkout-'+q.nonce});
    if(session.livemode!==false||!session.url?.startsWith('https://checkout.stripe.com/'))throw Error('Unexpected checkout');

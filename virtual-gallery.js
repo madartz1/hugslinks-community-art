@@ -16,13 +16,13 @@ function drawCatalogue(){
   const author=document.createElement('p');author.textContent=work.artist;
   const desc=document.createElement('p');desc.className='art-description';desc.textContent=work.description||'The artist’s description is coming soon.';
   const action=document.createElement('small');action.textContent='Approach artwork ↗';
-  mount.append(img);b.append(mount,title,author,desc,action);b.onclick=async()=>{await enter();if(engine){if(!engine.approach(work.id))showDetails(work);$('gallery').scrollIntoView({behavior:'auto',block:'start'})}else showDetails(work)};const card=document.createElement('article');card.className='artwork-card';card.append(b);if(work.id==='archive-eye'||work.id==='archive-horizon'){const buy=document.createElement('a');buy.className='print-link';buy.href='buy-print.html?artwork='+encodeURIComponent(work.id);buy.textContent='Preview print edition →';buy.setAttribute('aria-label','Preview print edition of '+work.title);card.append(buy)}$('artworks').append(card);
+  mount.append(img);b.append(mount,title,author,desc,action);b.onclick=async()=>{await enter();if(engine){if(!engine.approach(work.id))showDetails(work);$('gallery').scrollIntoView({behavior:'auto',block:'start'})}else showDetails(work)};const card=document.createElement('article');card.className='artwork-card';card.append(b);if(work.id==='archive-eye'||work.id==='archive-horizon'){const buy=document.createElement('a');buy.className='print-link';buy.href='print-options.html?artwork='+encodeURIComponent(work.id);buy.textContent='Explore print options →';buy.setAttribute('aria-label','Preview print edition of '+work.title);card.append(buy)}$('artworks').append(card);
  }
 }
 function updatePrintLink(link,work){
  const eligible=work.id==='archive-eye'||work.id==='archive-horizon';
  link.hidden=!eligible;
- if(eligible)link.href='buy-print.html?artwork='+encodeURIComponent(work.id);
+ if(eligible)link.href='print-options.html?artwork='+encodeURIComponent(work.id);
 }
 function showDescription(work){
  if(!work)return;

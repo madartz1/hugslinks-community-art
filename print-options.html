@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+ <meta charset="utf-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1">
+ <title>Print Options | HL Art Gallery</title>
+ <meta name="description" content="Compare print materials, sizes, and finishes for artwork from HL Art Gallery.">
+ <link rel="stylesheet" href="styles.css">
+ <link rel="stylesheet" href="color-paths.css">
+ <link rel="stylesheet" href="site-shell.css">
+ <link rel="stylesheet" href="print-options.css">
+ <script src="site-shell.js" defer></script>
+ <script src="print-options-catalog.js" defer></script>
+ <script src="print-options.js" defer></script>
+</head>
+<body class="hl-theme">
+ <header class="site-header">
+  <nav class="site-nav" aria-label="Main navigation">
+   <a class="site-brand" href="art-social.html"><span>HL</span> Art Gallery</a>
+   <div class="site-primary">
+    <a href="art-social.html">Feed</a><a href="virtual-gallery.html">Gallery</a><a href="competition.html">Competition</a><a href="art-collections.html">Collections</a>
+   </div>
+  </nav>
+ </header>
+ <main class="print-options-wrap">
+  <a class="options-back" id="optionsGallery" href="virtual-gallery.html">← Back to the gallery</a>
+  <div class="options-layout">
+   <figure class="options-art">
+    <div class="options-art-mat"><img id="optionsArtwork" src="assets/swan-eye.jpg" width="1086" height="1448" alt="Swan — The Eye"></div>
+    <figcaption id="optionsCaption">Swan — The Eye · Artwork preview</figcaption>
+   </figure>
+   <section class="options-panel" aria-labelledby="optionsTitle">
+    <p class="options-kicker">HL Art Gallery · Print atelier</p>
+    <h1 id="optionsTitle">Choose your print</h1>
+    <p class="options-intro">Compare surfaces, sizes, and finishes for the artwork you love.</p>
+    <noscript><p>Please enable JavaScript to browse the print options, or <a href="contact.html">contact the gallery</a> for help.</p></noscript>
+    <div id="optionsControls" hidden>
+     <label class="options-artwork-select" for="optionsArtworkChoice">Artwork
+      <select id="optionsArtworkChoice"></select>
+     </label>
+     <fieldset class="options-materials">
+      <legend>Print material</legend>
+      <div class="options-material-grid" id="optionsMaterials"></div>
+     </fieldset>
+     <p class="options-material-note" id="optionsMaterialNote"></p>
+     <div class="options-fields">
+      <label for="optionsSize">Print size <span>(W × H)</span><select id="optionsSize"></select></label>
+      <label for="optionsFinish">Frame or finish<select id="optionsFinish"></select></label>
+     </div>
+     <p class="options-fit" id="optionsFit"></p>
+     <div class="options-summary">
+      <div role="status" aria-live="polite">
+       <p id="optionsStatus" class="options-kicker"></p>
+       <h2 id="optionsSelection"></h2>
+       <p id="optionsPrice"></p>
+       <p id="optionsMessage"></p>
+      </div>
+      <a class="options-action" id="optionsAction" href="contact.html">Contact the gallery</a>
+     </div>
+     <details class="options-help">
+      <summary>How sizes and finishes are checked</summary>
+      <p>Dimensions are the print size; the finished frame may be larger. We check the image, crop or borders, finish, and shipping for quote options before confirming an order. The image above shows the artwork, not the final frame or surface.</p>
+     </details>
+    </div>
+   </section>
+  </div>
+ </main>
+</body>
+</html>

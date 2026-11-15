@@ -27,7 +27,7 @@ function render(){const room=rooms[current],work=works[room.art];
  preview.dataset.crop=String(current!==0);$('roomViewerCanvas').dataset.crop=String(mode==='room'&&current!==0);setImage(image,room.url,room.name+' with '+work.title+' by Swan the Artist');$('roomPreviewTitle').textContent=room.name;
  $('roomDescription').textContent=work.title+' · Swan the Artist · Illustrative interior';preview.setAttribute('aria-label','Open larger view of '+room.name+' with '+work.title);
  $('roomViewerTitle').textContent=room.name;$('roomArtworkTitle').textContent=work.title;$('roomArtworkDescription').textContent=work.description;
- $('roomPlannerLink').href='room-planner.html?artwork='+encodeURIComponent(room.art);$('roomArtworkLink').href='virtual-gallery.html?artwork='+encodeURIComponent(room.art);$('roomPrintLink').href='buy-print.html?artwork='+encodeURIComponent(room.art);
+ $('roomPlannerLink').href='room-planner.html?artwork='+encodeURIComponent(room.art);$('roomArtworkLink').href='virtual-gallery.html?artwork='+encodeURIComponent(room.art);$('roomPrintLink').href='print-options.html?artwork='+encodeURIComponent(room.art);
  $('roomViewerCount').textContent=(current+1)+' / '+rooms.length;
  $('roomImageError').hidden=true;setImage($('roomViewerImage'),mode==='room'?room.url:work.image,mode==='room'?room.name+' with '+work.title:work.title+' by Swan the Artist');
  $('roomMode').setAttribute('aria-pressed',String(mode==='room'));$('artMode').setAttribute('aria-pressed',String(mode==='art'));
