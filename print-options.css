@@ -36,3 +36,8 @@ body.hl-theme:has(.print-options-wrap){margin:0;background:#f7f3e9;color:#152f39
 .options-help summary{cursor:pointer;font-weight:700}
 @media(max-width:760px){.options-layout{grid-template-columns:1fr}.options-art{position:static}.options-art-mat{min-height:0;padding:1rem}.options-art img{max-height:min(32vh,300px)}}
 @media(max-width:450px){.options-material-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.options-fields{grid-template-columns:1fr}.options-action{width:100%}}
+
+.options-room-pick{margin-top:1rem;padding:.9rem 1rem;border:1px solid #bca472;border-radius:5px;background:#fffaf0}
+.options-room-pick h2{margin:.25rem 0;font:1.25rem Georgia,serif}
+.options-room-pick p:not(.options-kicker){font-size:.9rem}
+.options-room-pick a{display:inline-block;padding:.4rem 0;color:#234653;font-weight:750}

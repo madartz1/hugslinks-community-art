@@ -2,11 +2,15 @@
 const $=id=>document.getElementById(id),stage=$('plannerStage'),room=$('personalRoom'),art=$('placedArt'),artImage=$('plannerArtwork');
 const works={'archive-eye':{title:'Swan — The Eye',src:'assets/swan-eye.jpg',ratio:36/43},'archive-horizon':{title:'Golden Horizon',src:'assets/golden-horizon.jpg',ratio:null}};
 let work='archive-eye',photoURL=null,points=[],marking=false,scale=null,drag=null,readGeneration=0;
-const q=new URLSearchParams(location.search).get('artwork');if(Object.hasOwn(works,q))work=q;$('plannerWork').value=work;
+const params=new URLSearchParams(location.search),q=params.get('artwork');
+if(Object.hasOwn(works,q))work=q;
+const livingRoomEdition=work==='archive-eye'&&params.get('edition')==='swan-18x22-black-floater';
+if(livingRoomEdition)$('printWidth').value='18';
+$('plannerWork').value=work;
 const position={x:50,y:42};
 function status(text){$('plannerStatus').textContent=text}
 function line(){const el=$('measurementLine');el.hidden=!points.length;if(!points.length)return;const a=points[0],b=points[1]||a,r=stage.getBoundingClientRect(),dx=(b.x-a.x)*r.width,dy=(b.y-a.y)*r.height;Object.assign(el.style,{left:a.x*100+'%',top:a.y*100+'%',width:Math.hypot(dx,dy)+'px',transform:'rotate('+Math.atan2(dy,dx)+'rad)'});}
-function render(){const ratio=works[work].ratio||1.25,w=Number($('printWidth').value),h=w/ratio,rounded=n=>Math.round(n*10)/10;const label=rounded(w)+' × '+rounded(h)+' in';$('printDimensions').textContent=label+' · artwork only';$('sizeBadge').textContent=label+(scale?' · estimated scale':' · unscaled');$('plannerPrintLink').href='print-options.html?artwork='+encodeURIComponent(work);if(!photoURL)return;
+function render(){const w=Number($('printWidth').value),framedStudy=work==='archive-eye'&&w===18,ratio=framedStudy?18/22:works[work].ratio||1.25,h=w/ratio,rounded=n=>Math.round(n*10)/10;const label=rounded(w)+' × '+rounded(h)+' in';$('printDimensions').textContent=label+' · artwork only';$('sizeBadge').textContent=label+(scale?' · estimated scale':' · unscaled');$('plannerPrintLink').href='print-options.html?artwork='+encodeURIComponent(work);if(!photoURL)return;
  if(room.naturalWidth&&room.naturalHeight)stage.style.maxWidth=Math.min(stage.parentElement.clientWidth,window.innerHeight*.65*room.naturalWidth/room.naturalHeight)+'px';
  const r=stage.getBoundingClientRect();if(!r.width||!r.height)return;const wanted=scale?w*scale: r.width*.3,width=Math.min(wanted,r.width,r.height*ratio),height=width/ratio;
  Object.assign(art.style,{width:width+'px',left:(r.width-width)*position.x/100+'px',top:(r.height-height)*position.y/100+'px'});

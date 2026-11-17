@@ -15,6 +15,7 @@
  function chooseArtwork(){
   const work=works[active];
   artwork.value=active;
+  $('optionsRoomPick').hidden=active!=='archive-eye';
   material=work.first;
   $('optionsArtwork').src=work.image;
   $('optionsArtwork').alt=work.title;
