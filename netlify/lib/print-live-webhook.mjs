@@ -63,7 +63,7 @@ export async function handleLivePrintWebhook(request, context, {
   const order={
    id, art:quote.artworkId, editionId:quote.editionId, sku:quote.sku, revision:quote.revision,
    shippingService:quote.shippingService, printCents:quote.printCents, shippingCents:quote.shippingCents,
-   taxCents:tax, totalCents:session.amount_total, currency:session.currency, quoteRef:ref,
+   ...(quote.supplierQuoteRef?{supplierQuoteRef:quote.supplierQuoteRef}:{}), taxCents:tax, totalCents:session.amount_total, currency:session.currency, quoteRef:ref,
    status:exception?'paid_needs_review':'paid_awaiting_fulfillment', ...(exception?{exception}:{}), fulfillment:'manual_hold', createdAt:now()
   };
   await store.setJSON('order:'+id,order,{onlyIfNew:true});

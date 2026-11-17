@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow"><title>Golden Horizon private checkout | HL Art Gallery</title>
+<link rel="stylesheet" href="styles.css"><link rel="stylesheet" href="buy-print.css"><script src="golden-horizon-checkout-admin.js" defer></script></head>
+<body><main class="purchase-wrap"><section class="print-receipt"><p class="receipt-kicker">HL Art Gallery · Private sales</p>
+<h1>Golden Horizon · 10 × 8″ framed</h1><p><strong>$109 + verified shipping and sales tax.</strong> Archival matte, Standard Black frame, Off White mat, and Premium Clear acrylic.</p>
+<p>Verify the exact FinerWorks shipping price and service for this buyer before generating a link. Share only the resulting Stripe link privately. Fulfillment stays on manual hold.</p>
+<form id="privateCheckout" class="address-fields" autocomplete="off">
+<label class="wide">Gallery admin token<input type="password" id="adminToken" required autocomplete="off"></label>
+<label class="wide">FinerWorks quote reference (no buyer details)<input name="supplierQuoteRef" required maxlength="80" pattern="[A-Za-z0-9_ \-]{2,80}"></label>
+<label>Quoted shipping service<input name="shippingService" required maxlength="64"></label>
+<label>Quoted shipping in USD<input name="shipping" type="number" min="0" max="100" step="0.01" required></label>
+<label class="wide">New York delivery street address<input name="line1" required maxlength="100"></label>
+<label class="wide">Apartment / suite (optional)<input name="line2" maxlength="100"></label>
+<label>City<input name="city" required maxlength="60"></label>
+<label>ZIP code<input name="postal_code" required pattern="[0-9]{5}(-[0-9]{4})?" inputmode="numeric"></label>
+<button id="makeCheckout" class="wide" type="submit">Create live Stripe checkout link</button>
+</form><p id="checkoutStatus" role="status" aria-live="polite"></p>
+<p><a id="privateLink" hidden rel="noopener noreferrer">Open live Stripe checkout</a></p>
+</section></main></body></html>

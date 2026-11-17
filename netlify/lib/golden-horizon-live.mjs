@@ -3,8 +3,8 @@ import { createHmac, timingSafeEqual } from 'node:crypto';
 import { getStore } from '@netlify/blobs';
 
 export const cityscape=Object.freeze({
- artworkId:'archive-horizon',editionId:'horizon-5x4-matte',sku:'AP108137P700685',revision:'golden-horizon-paper-v1',
- priceId:'price_1UceegAgUYqcdQzuOUYE3ju5',printCents:2900
+ artworkId:'archive-horizon',editionId:'horizon-10x8-matte-framed',sku:'GH-10X8-STD-BLK',revision:'golden-horizon-framed-v1',
+ priceId:'price_1UcudIAgUYqcdQzuYgITE7an',printCents:10900
 });
 const currency='usd';
 const defaultStore=()=>getStore({name:'print-orders-live',consistency:'strong'});
@@ -32,8 +32,8 @@ export async function startGoldenHorizonCheckout(request,context,{
 }={}){
  if(context?.deploy?.context!=='production'||env.HUGS_PRINT_LIVE_CHECKOUT!=='true'||env.HUGS_PRINT_LIVE_LEDGER!=='true')return json({error:'Not found'},404);
  if(request.method!=='POST')return json({error:'Method not allowed'},405);
- const token=env.HUGS_PRINT_LIVE_ADMIN_TOKEN;
- if(typeof token!=='string'||token.length<32||!strongEqual(request.headers.get('authorization'),'Bearer '+token))return json({error:'Unauthorized'},401);
+ const token=env.HUGS_PRINT_LIVE_ADMIN_TOKEN||env.HUGS_ADMIN_TOKEN;
+ if(typeof token!=='string'||token.length<24||!strongEqual(request.headers.get('authorization'),'Bearer '+token))return json({error:'Unauthorized'},401);
  const key=env.HUGS_PRINT_STRIPE_LIVE_KEY,signing=env.HUGS_PRINT_STRIPE_LIVE_WEBHOOK_SECRET;
  const secret=env.HUGS_PRINT_LIVE_QUOTE_SECRET,origin=env.HUGS_PRINT_LIVE_ORIGIN;
  if(!/^(rk|sk)_live_[A-Za-z0-9_-]+$/.test(key||'')||!/^whsec_[A-Za-z0-9_-]+$/.test(signing||'')||
@@ -41,10 +41,10 @@ export async function startGoldenHorizonCheckout(request,context,{
 
  let body;
  try{const raw=await request.text();if(raw.length>4096)throw Error();body=JSON.parse(raw)}catch{return json({error:'Invalid quote request.'},400)}
- const {quoteId,shippingCents,shippingService,address}=body??{};
+ const {quoteId,shippingCents,shippingService,address,supplierQuoteRef}=body??{};
  const dest=canonicalDestination(address);
  if(!/^[a-f0-9]{32}$/.test(quoteId||'')||!dest||!Number.isSafeInteger(shippingCents)||shippingCents<0||
-  shippingCents>5000||typeof shippingService!=='string'||!shippingService.trim()||shippingService.length>64){
+  shippingCents>10000||!/^[A-Za-z0-9_ -]{2,80}$/.test(supplierQuoteRef||'')||typeof shippingService!=='string'||!shippingService.trim()||shippingService.length>64){
   return json({error:'Use a verified FinerWorks quote for one New York delivery address.'},400);
  }
 
@@ -57,12 +57,12 @@ export async function startGoldenHorizonCheckout(request,context,{
 
   const candidate={approved:true,currency,artworkId:cityscape.artworkId,editionId:cityscape.editionId,sku:cityscape.sku,
    revision:cityscape.revision,printCents:cityscape.printCents,shippingCents,shippingService:shippingService.trim(),
-   destinationSeal:destinationSeal(dest,secret),expiresAt:Math.floor(now()/1000)+3600};
+   supplierQuoteRef,destinationSeal:destinationSeal(dest,secret),expiresAt:Math.floor(now()/1000)+3600};
   const store=makeStore(),storeKey='quote:'+quoteId;
   await store.setJSON(storeKey,candidate,{onlyIfNew:true});
   const quote=await store.get(storeKey,{type:'json'});
   if(!quote||quote.revision!==candidate.revision||quote.destinationSeal!==candidate.destinationSeal||
-   quote.shippingCents!==candidate.shippingCents||quote.shippingService!==candidate.shippingService){
+   quote.shippingCents!==candidate.shippingCents||quote.shippingService!==candidate.shippingService||quote.supplierQuoteRef!==supplierQuoteRef){
    return json({error:'Use a different quote reference for a changed amount or address.'},409);
   }
   if(quote.expiresAt<=Math.floor(now()/1000)+1800)return json({error:'This quote is near expiry. Verify the rate and use a new quote reference.'},410);
