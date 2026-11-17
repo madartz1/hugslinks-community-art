@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {collectorEdition} from '../netlify/lib/collector-live.mjs';
 import { startGoldenHorizonCheckout, cityscape } from '../netlify/lib/golden-horizon-live.mjs';
 
 const env={HUGS_PRINT_LIVE_LEDGER:'true',HUGS_PRINT_LIVE_CHECKOUT:'true',
@@ -9,7 +10,7 @@ const env={HUGS_PRINT_LIVE_LEDGER:'true',HUGS_PRINT_LIVE_CHECKOUT:'true',
 const ctx={deploy:{context:'production'}};
 const address={line1:'350 Fifth Avenue',city:'New York',state:'NY',postal_code:'10118',country:'US'};
 const body={quoteId:'a'.repeat(32),address,shippingService:'Economy',shippingCents:695,supplierQuoteRef:'FW quote 001'};
-function fixture({tax=true}={}){
+function fixture({tax=true,edition=cityscape}={}){
  let record,config,calls=0;
  const stripe={tax:{settings:{retrieve:async()=>({livemode:true,status:'active'})},
   registrations:{list:async()=>({data:tax?[{livemode:true,status:'active',country:'US',country_options:{us:{state:'NY'}}}]:[]})}},
@@ -20,7 +21,7 @@ function fixture({tax=true}={}){
  const store={setJSON:async(_key,val,opts)=>{if(!opts?.onlyIfNew||!record)record=val},get:async()=>record};
  const invoke=(payload=body,context=ctx,token=env.HUGS_PRINT_LIVE_ADMIN_TOKEN)=>startGoldenHorizonCheckout(
   new Request('https://gallery.example.com/checkout',{method:'POST',headers:{authorization:'Bearer '+token},body:JSON.stringify(payload)}),
-  context,{env,now:()=>100_000,makeStripe:()=>stripe,makeStore:()=>store});
+  context,{edition,env,now:()=>100_000,makeStripe:()=>stripe,makeStore:()=>store});
  return {invoke,get state(){return {record,config,calls}}};
 }
 
@@ -43,4 +44,17 @@ test('unauthorized, non-production, non-NY and missing registration cannot creat
  assert.equal((await f.invoke({...body,address:{...address,state:'NJ'}})).status,400);
  assert.equal((await f.invoke(body)).status,503);
  assert.equal(f.state.calls,0);
+});
+
+test('collector edition requires a verified supplier cost, protects margin, and uses its own live Price',async()=>{
+ const f=fixture({edition:collectorEdition});
+ for(const supplierCostCents of [undefined,14800])assert.equal((await f.invoke({...body,supplierCostCents})).status,422);
+ assert.equal(f.state.calls,0);
+ assert.equal((await f.invoke({...body,supplierCostCents:12800,priceCents:1})).status,200);
+ assert.deepEqual(f.state.config.line_items,[{price:collectorEdition.priceId,quantity:1}]);
+ assert.equal(f.state.record.printCents,34900);
+ assert.equal(f.state.record.supplierCostCents,12800);
+ assert.equal(f.state.record.editionId,'city-holds-breath-20x16-framed');
+ assert.equal(f.state.config.cancel_url,'https://gallery.example.com/the-city-holds-its-breath.html');
+ assert.equal((await f.invoke({...body,supplierCostCents:12900})).status,409);
 });

@@ -4,7 +4,7 @@ import { getStore } from '@netlify/blobs';
 
 export const cityscape=Object.freeze({
  artworkId:'archive-horizon',editionId:'horizon-10x8-matte-framed',sku:'GH-10X8-STD-BLK',revision:'golden-horizon-framed-v1',
- priceId:'price_1UcudIAgUYqcdQzuYgITE7an',printCents:10900
+ priceId:'price_1UcudIAgUYqcdQzuYgITE7an',printCents:10900,title:'Golden Horizon',successPath:'/golden-horizon-order.html',cancelPath:'/print-options.html?artwork=archive-horizon'
 });
 const currency='usd';
 const defaultStore=()=>getStore({name:'print-orders-live',consistency:'strong'});
@@ -28,7 +28,7 @@ export const validCheckoutUrl=value=>{
 };
 
 export async function startGoldenHorizonCheckout(request,context,{
- env=process.env,makeStripe=key=>new Stripe(key,{apiVersion:'2026-10-28.endive'}),makeStore=defaultStore,now=()=>Date.now()
+ edition=cityscape,env=process.env,makeStripe=key=>new Stripe(key,{apiVersion:'2026-10-28.endive'}),makeStore=defaultStore,now=()=>Date.now()
 }={}){
  if(context?.deploy?.context!=='production'||env.HUGS_PRINT_LIVE_CHECKOUT!=='true'||env.HUGS_PRINT_LIVE_LEDGER!=='true')return json({error:'Not found'},404);
  if(request.method!=='POST')return json({error:'Method not allowed'},405);
@@ -48,6 +48,12 @@ export async function startGoldenHorizonCheckout(request,context,{
   return json({error:'Use a verified FinerWorks quote for one New York delivery address.'},400);
  }
 
+ const cost=body.supplierCostCents;
+ if(edition.minMarginCents&&(!Number.isSafeInteger(cost)||cost<1||cost>edition.printCents||
+  edition.printCents-cost-(Math.ceil((edition.printCents+shippingCents)*.04)+30)<edition.minMarginCents)){
+  return json({error:'Verify the supplier total before shipping. This quote must leave at least $200 after the fee reserve.'},422);
+ }
+
  try{
   const stripe=makeStripe(key);
   // The registration is live and active in the verified pilot jurisdiction.
@@ -55,25 +61,25 @@ export async function startGoldenHorizonCheckout(request,context,{
   if(settings.livemode!==true||settings.status!=='active'||!registrations.data.some(r=>r.livemode===true&&r.status==='active'&&
    r.country==='US'&&r.country_options?.us?.state==='NY'))return json({error:'New York tax setup is not active.'},503);
 
-  const candidate={approved:true,currency,artworkId:cityscape.artworkId,editionId:cityscape.editionId,sku:cityscape.sku,
-   revision:cityscape.revision,printCents:cityscape.printCents,shippingCents,shippingService:shippingService.trim(),
-   supplierQuoteRef,destinationSeal:destinationSeal(dest,secret),expiresAt:Math.floor(now()/1000)+3600};
+  const candidate={approved:true,currency,artworkId:edition.artworkId,editionId:edition.editionId,sku:edition.sku,
+   revision:edition.revision,printCents:edition.printCents,shippingCents,shippingService:shippingService.trim(),
+   supplierQuoteRef,...(edition.minMarginCents?{supplierCostCents:cost}:{}),destinationSeal:destinationSeal(dest,secret),expiresAt:Math.floor(now()/1000)+3600};
   const store=makeStore(),storeKey='quote:'+quoteId;
   await store.setJSON(storeKey,candidate,{onlyIfNew:true});
   const quote=await store.get(storeKey,{type:'json'});
   if(!quote||quote.revision!==candidate.revision||quote.destinationSeal!==candidate.destinationSeal||
-   quote.shippingCents!==candidate.shippingCents||quote.shippingService!==candidate.shippingService||quote.supplierQuoteRef!==supplierQuoteRef){
+   quote.shippingCents!==candidate.shippingCents||quote.shippingService!==candidate.shippingService||quote.supplierQuoteRef!==supplierQuoteRef||quote.supplierCostCents!==candidate.supplierCostCents){
    return json({error:'Use a different quote reference for a changed amount or address.'},409);
   }
   if(quote.expiresAt<=Math.floor(now()/1000)+1800)return json({error:'This quote is near expiry. Verify the rate and use a new quote reference.'},410);
   const digest=destinationSeal([quoteId],secret);
   const session=await stripe.checkout.sessions.create({
-   mode:'payment',automatic_tax:{enabled:true},adaptive_pricing:{enabled:false},line_items:[{price:cityscape.priceId,quantity:1}],
+   mode:'payment',automatic_tax:{enabled:true},adaptive_pricing:{enabled:false},line_items:[{price:edition.priceId,quantity:1}],
    shipping_address_collection:{allowed_countries:['US']},
    custom_text:{shipping_address:{message:'Use the New York delivery address on your gallery quote. The gallery reviews shipping before production.'}},
    shipping_options:[{shipping_rate_data:{display_name:quote.shippingService,type:'fixed_amount',
     fixed_amount:{currency,amount:quote.shippingCents},tax_behavior:'exclusive'}}],
-   success_url:origin+'/golden-horizon-order.html',cancel_url:origin+'/print-options.html?artwork=archive-horizon',
+   success_url:origin+edition.successPath,cancel_url:origin+edition.cancelPath,
    expires_at:quote.expiresAt,
    integration_identifier:'hl_gallery_print_'+Array.from(digest.slice(0,8),c=>String.fromCharCode(97+parseInt(c,16))).join(''),
    metadata:{hugs_print:'hl-print-live-v1',quote_id:quoteId}
@@ -82,6 +88,6 @@ export async function startGoldenHorizonCheckout(request,context,{
    !validCheckoutUrl(session.url)||(quote.sessionId&&quote.sessionId!==session.id))throw Error('Unexpected live checkout');
   // Never disclose the Checkout URL until the authoritative quote is bound.
   if(!quote.sessionId)await store.setJSON(storeKey,{...quote,sessionId:session.id});
-  return json({url:session.url,artwork:'Golden Horizon',printCents:quote.printCents,shippingCents:quote.shippingCents});
+  return json({url:session.url,artwork:edition.title,printCents:quote.printCents,shippingCents:quote.shippingCents});
  }catch{return json({error:'Unable to create the live print checkout.'},503)}
 }

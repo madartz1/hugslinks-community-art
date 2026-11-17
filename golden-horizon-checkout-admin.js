@@ -8,6 +8,7 @@
    shippingCents:Math.round(Number(v.get('shipping'))*100), shippingService:v.get('shippingService'),
    supplierQuoteRef:v.get('supplierQuoteRef'),address:{line1:v.get('line1'),line2:v.get('line2'),city:v.get('city'),postal_code:v.get('postal_code'),state:'NY',country:'US'}
   };
+  if(form.elements.supplierCost)input.supplierCostCents=Math.round(Number(v.get('supplierCost'))*100);
   const fingerprint=JSON.stringify(input);
   if(lastInput!==fingerprint){
    key=Array.from(crypto.getRandomValues(new Uint8Array(16)),b=>b.toString(16).padStart(2,'0')).join('');
@@ -15,7 +16,7 @@
   }
   button.disabled=true;link.hidden=true;status.textContent='Preparing Stripe checkout…';
   try {
-   const r=await fetch('/.netlify/functions/art-print-golden-horizon-live',{
+   const r=await fetch(form.dataset.endpoint||'/.netlify/functions/art-print-golden-horizon-live',{
     method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+document.getElementById('adminToken').value.trim()},
     body:JSON.stringify({quoteId:key,...input})
    });
