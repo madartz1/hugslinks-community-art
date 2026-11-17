@@ -1,6 +1,7 @@
 import Stripe from 'stripe';
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { getStore } from '@netlify/blobs';
+import { linkPrintRequest } from './print-requests.mjs';
 
 export const cityscape=Object.freeze({
  artworkId:'archive-horizon',editionId:'horizon-10x8-matte-framed',sku:'GH-10X8-STD-BLK',revision:'golden-horizon-framed-v1',
@@ -28,7 +29,7 @@ export const validCheckoutUrl=value=>{
 };
 
 export async function startGoldenHorizonCheckout(request,context,{
- edition=cityscape,env=process.env,makeStripe=key=>new Stripe(key,{apiVersion:'2026-10-28.endive'}),makeStore=defaultStore,now=()=>Date.now()
+ edition=cityscape,env=process.env,makeStripe=key=>new Stripe(key,{apiVersion:'2026-10-28.endive'}),makeStore=defaultStore,findPrintRequest=linkPrintRequest,now=()=>Date.now()
 }={}){
  if(context?.deploy?.context!=='production'||env.HUGS_PRINT_LIVE_CHECKOUT!=='true'||env.HUGS_PRINT_LIVE_LEDGER!=='true')return json({error:'Not found'},404);
  if(request.method!=='POST')return json({error:'Method not allowed'},405);
@@ -41,7 +42,7 @@ export async function startGoldenHorizonCheckout(request,context,{
 
  let body;
  try{const raw=await request.text();if(raw.length>4096)throw Error();body=JSON.parse(raw)}catch{return json({error:'Invalid quote request.'},400)}
- const {quoteId,shippingCents,shippingService,address,supplierQuoteRef}=body??{};
+ const {quoteId,shippingCents,shippingService,address,supplierQuoteRef,requestId}=body??{};
  const dest=canonicalDestination(address);
  if(!/^[a-f0-9]{32}$/.test(quoteId||'')||!dest||!Number.isSafeInteger(shippingCents)||shippingCents<0||
   shippingCents>10000||!/^[A-Za-z0-9_ -]{2,80}$/.test(supplierQuoteRef||'')||typeof shippingService!=='string'||!shippingService.trim()||shippingService.length>64){
@@ -55,6 +56,13 @@ export async function startGoldenHorizonCheckout(request,context,{
  }
 
  try{
+  let linked;
+  if(requestId){
+   if(requestId!==quoteId)return json({error:'Open the request from the print queue.'},422);
+   linked=await findPrintRequest(requestId,edition.editionId,context);
+   if(!linked)return json({error:'Request not found, already paid, or for a different edition.'},409);
+   if(dest[4].slice(0,5)!==linked.record.zip)return json({error:'The delivery ZIP must match the print request.'},409);
+  }
   const stripe=makeStripe(key);
   // The registration is live and active in the verified pilot jurisdiction.
   const [settings,registrations]=await Promise.all([stripe.tax.settings.retrieve(),stripe.tax.registrations.list({status:'active',limit:100})]);
@@ -63,18 +71,18 @@ export async function startGoldenHorizonCheckout(request,context,{
 
   const candidate={approved:true,currency,artworkId:edition.artworkId,editionId:edition.editionId,sku:edition.sku,
    revision:edition.revision,printCents:edition.printCents,shippingCents,shippingService:shippingService.trim(),
-   supplierQuoteRef,...(edition.minMarginCents?{supplierCostCents:cost}:{}),destinationSeal:destinationSeal(dest,secret),expiresAt:Math.floor(now()/1000)+3600};
+   supplierQuoteRef,...(linked?{requestId}:{}),...(edition.minMarginCents?{supplierCostCents:cost}:{}),destinationSeal:destinationSeal(dest,secret),expiresAt:Math.floor(now()/1000)+3600};
   const store=makeStore(),storeKey='quote:'+quoteId;
   await store.setJSON(storeKey,candidate,{onlyIfNew:true});
   const quote=await store.get(storeKey,{type:'json'});
   if(!quote||quote.revision!==candidate.revision||quote.destinationSeal!==candidate.destinationSeal||
-   quote.shippingCents!==candidate.shippingCents||quote.shippingService!==candidate.shippingService||quote.supplierQuoteRef!==supplierQuoteRef||quote.supplierCostCents!==candidate.supplierCostCents){
+   quote.shippingCents!==candidate.shippingCents||quote.shippingService!==candidate.shippingService||quote.supplierQuoteRef!==supplierQuoteRef||quote.supplierCostCents!==candidate.supplierCostCents||quote.requestId!==candidate.requestId){
    return json({error:'Use a different quote reference for a changed amount or address.'},409);
   }
   if(quote.expiresAt<=Math.floor(now()/1000)+1800)return json({error:'This quote is near expiry. Verify the rate and use a new quote reference.'},410);
   const digest=destinationSeal([quoteId],secret);
   const session=await stripe.checkout.sessions.create({
-   mode:'payment',automatic_tax:{enabled:true},adaptive_pricing:{enabled:false},line_items:[{price:edition.priceId,quantity:1}],
+   mode:'payment',...(linked?{customer_email:linked.record.email}:{}),automatic_tax:{enabled:true},adaptive_pricing:{enabled:false},line_items:[{price:edition.priceId,quantity:1}],
    shipping_address_collection:{allowed_countries:['US']},
    custom_text:{shipping_address:{message:'Use the New York delivery address on your gallery quote. The gallery reviews shipping before production.'}},
    shipping_options:[{shipping_rate_data:{display_name:quote.shippingService,type:'fixed_amount',
@@ -88,6 +96,7 @@ export async function startGoldenHorizonCheckout(request,context,{
    !validCheckoutUrl(session.url)||(quote.sessionId&&quote.sessionId!==session.id))throw Error('Unexpected live checkout');
   // Never disclose the Checkout URL until the authoritative quote is bound.
   if(!quote.sessionId)await store.setJSON(storeKey,{...quote,sessionId:session.id});
+  if(linked)await linked.store.setJSON('quoted:'+requestId,{createdAt:now()},{onlyIfNew:true});
   return json({url:session.url,artwork:edition.title,printCents:quote.printCents,shippingCents:quote.shippingCents});
  }catch{return json({error:'Unable to create the live print checkout.'},503)}
 }

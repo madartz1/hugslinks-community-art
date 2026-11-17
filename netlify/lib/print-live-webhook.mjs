@@ -2,6 +2,7 @@
 // order. The production checkout producer must save the approved quote first.
 import Stripe from 'stripe';
 import { getStore } from '@netlify/blobs';
+import { recordPaidPrintRequest } from './print-requests.mjs';
 import { canonicalDestination, destinationSeal } from './golden-horizon-live.mjs';
 
 const json=(body,status=200)=>Response.json(body,{status,headers:{'Cache-Control':'no-store'}});
@@ -20,7 +21,7 @@ const apiKey=value=>typeof value==='string'&&/^(?:rk|sk)_live_[A-Za-z0-9_-]+$/.t
 export async function handleLivePrintWebhook(request, context, {
  env=process.env,
  makeStripe=key=>new Stripe(key,{apiVersion:'2026-10-28.endive'}),
- makeStore=storeDefault,
+ makeStore=storeDefault,recordPaid=recordPaidPrintRequest,
  now=()=>Date.now()
 }={}){
  if(context?.deploy?.context!=='production'||env.HUGS_PRINT_LIVE_LEDGER!=='true')return json({error:'Not found'},404);
@@ -61,12 +62,17 @@ export async function handleLivePrintWebhook(request, context, {
    destinationSeal(destination,env.HUGS_PRINT_LIVE_QUOTE_SECRET)!==quote.destinationSeal||
    session.automatic_tax?.status!=='complete'||tax<=0)?'verify_destination_and_tax':null;
   const order={
-   id, art:quote.artworkId, editionId:quote.editionId, sku:quote.sku, revision:quote.revision,
+   id, ...(quote.requestId?{requestId:quote.requestId}:{}), art:quote.artworkId, editionId:quote.editionId, sku:quote.sku, revision:quote.revision,
    shippingService:quote.shippingService, printCents:quote.printCents, shippingCents:quote.shippingCents,
    ...(quote.supplierQuoteRef?{supplierQuoteRef:quote.supplierQuoteRef}:{}), ...(cents(quote.supplierCostCents,1)?{supplierCostCents:quote.supplierCostCents}:{}), taxCents:tax, totalCents:session.amount_total, currency:session.currency, quoteRef:ref,
    status:exception?'paid_needs_review':'paid_awaiting_fulfillment', ...(exception?{exception}:{}), fulfillment:'manual_hold', createdAt:now()
   };
-  await store.setJSON('order:'+id,order,{onlyIfNew:true});
+  const result=await store.setJSON('order:'+id,order,{onlyIfNew:true});
+  if(quote.requestId){
+   const saved=result?.modified===false?await store.get('order:'+id,{type:'json'}):order;
+   if(!saved)throw Error('Order unavailable');
+   await recordPaid(quote.requestId,saved,context);
+  }
   return json({received:true});
  }catch{return json({error:'Live payment verification temporarily unavailable.'},503)}
 }

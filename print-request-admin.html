@@ -1,0 +1,7 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>Print Requests &amp; Orders | HL Art Gallery</title><link rel="stylesheet" href="styles.css"><link rel="stylesheet" href="buy-print.css"><script defer src="print-request-admin.js"></script></head>
+<body><main class="purchase-wrap"><a href="admin-access.html">← Gallery Admin</a><section class="print-receipt"><p class="receipt-kicker">HL Art Gallery · Private sales</p><h1>Print Requests &amp; Orders</h1>
+<p>Review requests, create private checkout links, and record orders you place with FinerWorks.</p>
+<form id="queueLogin" class="address-fields" autocomplete="off"><label class="wide">Gallery admin token<input id="queueToken" type="password" required autocomplete="off"></label><button type="submit">Open print queue</button></form>
+<p id="queueStatus" role="status" aria-live="polite"></p>
+<div id="queue" hidden><button type="button" id="queueRefresh">Refresh</button> <button type="button" id="queueLock">Lock</button><h2>Print requests</h2><div id="printRequests"></div><h2>Recent verified payments</h2><div id="printOrders"></div></div>
+</section></main></body></html>

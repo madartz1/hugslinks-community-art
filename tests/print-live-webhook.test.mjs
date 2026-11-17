@@ -65,3 +65,13 @@ test('cityscape pilot keeps the order on manual hold and flags a changed address
   assert.equal(f.state.order.fulfillment,'manual_hold');
  }
 });
+
+test('linked paid Checkout Session passes a verified held order to the request queue',async()=>{
+ let linked;
+ const requestId='a'.repeat(32),f=fixture({forQuote:{...quote,requestId}});
+ const response=await f.invoke(ctx,{recordPaid:async(id,order)=>{linked={id,order}}});
+ assert.equal(response.status,200);
+ assert.equal(linked.id,requestId);
+ assert.equal(linked.order.requestId,requestId);
+ assert.equal(linked.order.fulfillment,'manual_hold');
+});
