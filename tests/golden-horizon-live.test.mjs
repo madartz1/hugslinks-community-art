@@ -10,7 +10,7 @@ const env={HUGS_PRINT_LIVE_LEDGER:'true',HUGS_PRINT_LIVE_CHECKOUT:'true',
 const ctx={deploy:{context:'production'}};
 const address={line1:'350 Fifth Avenue',city:'New York',state:'NY',postal_code:'10118',country:'US'};
 const body={quoteId:'a'.repeat(32),address,shippingService:'Economy',shippingCents:695,supplierQuoteRef:'FW quote 001'};
-function fixture({tax=true,edition=cityscape}={}){
+function fixture({tax=true,edition=cityscape,findPrintRequest}={}){
  let record,config,calls=0;
  const stripe={tax:{settings:{retrieve:async()=>({livemode:true,status:'active'})},
   registrations:{list:async()=>({data:tax?[{livemode:true,status:'active',country:'US',country_options:{us:{state:'NY'}}}]:[]})}},
@@ -21,7 +21,7 @@ function fixture({tax=true,edition=cityscape}={}){
  const store={setJSON:async(_key,val,opts)=>{if(!opts?.onlyIfNew||!record)record=val},get:async()=>record};
  const invoke=(payload=body,context=ctx,token=env.HUGS_PRINT_LIVE_ADMIN_TOKEN)=>startGoldenHorizonCheckout(
   new Request('https://gallery.example.com/checkout',{method:'POST',headers:{authorization:'Bearer '+token},body:JSON.stringify(payload)}),
-  context,{edition,env,now:()=>100_000,makeStripe:()=>stripe,makeStore:()=>store});
+  context,{edition,...(findPrintRequest?{findPrintRequest}:{}),env,now:()=>100_000,makeStripe:()=>stripe,makeStore:()=>store});
  return {invoke,get state(){return {record,config,calls}}};
 }
 
@@ -57,4 +57,19 @@ test('collector edition requires a verified supplier cost, protects margin, and 
  assert.equal(f.state.record.editionId,'city-holds-breath-20x16-framed');
  assert.equal(f.state.config.cancel_url,'https://gallery.example.com/the-city-holds-its-breath.html');
  assert.equal((await f.invoke({...body,supplierCostCents:12900})).status,409);
+});
+
+test('linked buyer request locks the edition and ZIP and records a quote without storing its payment URL',async()=>{
+ let quoted;
+ const f=fixture({findPrintRequest:async (ref,editionId)=>{
+  assert.equal(ref,body.quoteId);assert.equal(editionId,cityscape.editionId);
+  return {record:{email:'buyer@example.com',zip:'10118'},store:{setJSON:async (key,value)=>{quoted={key,value}}}};
+ }});
+ assert.equal((await f.invoke({...body,requestId:'b'.repeat(32)})).status,422);
+ assert.equal((await f.invoke({...body,requestId:body.quoteId,address:{...address,postal_code:'10001'}})).status,409);
+ assert.equal((await f.invoke({...body,requestId:body.quoteId})).status,200);
+ assert.equal(f.state.config.customer_email,'buyer@example.com');
+ assert.equal(f.state.record.requestId,body.quoteId);
+ assert.equal(quoted.key,'quoted:'+body.quoteId);
+ assert.deepEqual(Object.keys(quoted.value),['createdAt']);
 });

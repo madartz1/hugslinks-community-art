@@ -2,6 +2,11 @@
  const form=document.getElementById('privateCheckout'), button=document.getElementById('makeCheckout');
  const link=document.getElementById('privateLink'), status=document.getElementById('checkoutStatus');
  let key,lastInput;
+ const params=new URLSearchParams(location.search),requestId=params.get('request');
+ if(/^[a-f0-9]{32}$/.test(requestId||'')){
+  const notice=document.createElement('p');notice.textContent='Linked gallery request: '+requestId;form.before(notice);
+  if(/^\d{5}$/.test(params.get('zip')||''))form.elements.postal_code.value=params.get('zip');
+ }
  form.addEventListener('submit',async event=>{
   event.preventDefault();
   const v=new FormData(form),input={
@@ -18,7 +23,7 @@
   try {
    const r=await fetch(form.dataset.endpoint||'/.netlify/functions/art-print-golden-horizon-live',{
     method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+document.getElementById('adminToken').value.trim()},
-    body:JSON.stringify({quoteId:key,...input})
+    body:JSON.stringify({...input,quoteId:requestId||key,...(requestId?{requestId}: {})})
    });
    const data=await r.json();
    if(!r.ok)throw Error(data.error||'Checkout is unavailable.');

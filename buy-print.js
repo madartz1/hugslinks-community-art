@@ -13,6 +13,12 @@
  if(id==='archive-eye')$('pilotEdition').hidden=false;
  $('backToArt').href='virtual-gallery.html?artwork='+encodeURIComponent(id);
  if(id==='archive-eye')startCheckout();
+ if(id==='archive-horizon'){
+  const note=$('purchaseNote'),heading=document.createElement('h2'),copy=document.createElement('p'),link=document.createElement('a');
+  heading.textContent='Request Golden Horizon';copy.textContent='10 × 8″ framed print. The gallery confirms pricing and delivery before payment.';
+  link.href='request-print.html?edition=horizon-10x8-matte-framed';link.textContent='Request this print';
+  note.replaceChildren(heading,copy,link);
+ }
  async function startCheckout(){
   const note=$('purchaseNote');
   const api=async(action,data)=>{const res=await fetch('/.netlify/functions/art-print-payments?action='+action,data?{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(data)}:{});const value=await res.json();if(!res.ok)throw Error(value.error||'The test service is unavailable.');return value};
