@@ -145,3 +145,51 @@ just because the first status lookup returns no result; reconcile it by the
 stable purchase order reference first.
 
 Supplier reference: https://v2.api.finerworks.com/Documentation/Troubleshooting
+
+### Live payment ledger (prepared, disabled by default)
+
+`art-print-live-webhook` is a separate production-only signed Stripe event
+handler. A verified paid session tied to the exact stored, approved live quote
+writes one manual-fulfillment record in `print-orders-live`. It has no
+FinerWorks submission capability. Test credentials and Preview are rejected.
+Before enabling it:
+
+1. Verify the final launch edition's FinerWorks file, price, shipping quote,
+   and tax setup. The current test catalog does not approve any live quote.
+2. Connect a production Checkout flow that saves the approved quote under
+   `quote:<32 lowercase hex characters>` in the live store, binds it to the
+   Stripe Checkout Session ID, and puts that reference in `quote_id` metadata
+   along with `hugs_print=hl-print-live-v1`. Persist the binding before handing
+   out a checkout URL. The approved quote must lock edition, SKU, revision,
+   currency, exact print and shipping cents, and shipping service.
+3. Configure `HUGS_PRINT_STRIPE_LIVE_KEY` and
+   `HUGS_PRINT_STRIPE_LIVE_WEBHOOK_SECRET` as production Functions secrets, and
+   configure a production Stripe webhook for checkout completion and async
+   outcomes. Never reuse the sandbox keys or expose a key in browser code.
+4. Connect the live ledger to a restricted admin workflow with shipment,
+   tracking and refunds before exposing checkout. Leave
+   `HUGS_PRINT_LIVE_LEDGER` unset until those gates are ready.
+
+### Golden Horizon pilot
+
+The first live candidate is Golden Horizon, 5 × 4″, borderless Archival Matte
+Paper, FinerWorks SKU AP108137P700685. The authenticated FinerWorks inventory
+shows a $7 print price. The $6.95 NYC Economy quote is from the sandbox.
+The live Stripe product uses the $29 exclusive-tax Price
+`price_1UceegAgUYqcdQzuOUYE3ju5` and an explicit physical-goods tax code.
+Live Stripe Tax returned an active NY registration and standard-rated tax
+for the print in an NYC invoice preview. The account-wide apparel default
+was not changed.
+
+The production-only, admin-authenticated POST function
+`art-print-golden-horizon-live` is designed for one private checkout per
+confirmed NY supplier quote. Set its production-only origin, admin and
+quote secrets, and ledger/checkout flags after configuring the restricted
+live Stripe key and webhook. It accepts a unique lower-case 32-hex quote
+reference, New York delivery address, verified shipping cents and service.
+Do not enter a sandbox rate as a verified supplier quote. It creates a
+Stripe Session for the cityscape only and persists its quote before
+returning the URL. It does not submit a supplier order. Compare the paid
+Stripe Session and the live supplier shipment before placing the first
+order manually. An address or tax discrepancy remains on manual exception
+hold. Use explicit secure handling of buyer data when operating the pilot.
