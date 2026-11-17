@@ -193,3 +193,12 @@ returning the URL. It does not submit a supplier order. Compare the paid
 Stripe Session and the live supplier shipment before placing the first
 order manually. An address or tax discrepancy remains on manual exception
 hold. Use explicit secure handling of buyer data when operating the pilot.
+
+### Golden Horizon 10 × 8 wall edition
+
+The draft Print Options page features 10 × 8-inch landscape archival matte
+paper, quoted with a slim black frame and mat. The 1,402 × 1,122 source
+delivers approximately 140 pixels per inch at that print size. The supplier
+calculator shows $8 unframed. The combined matte/frame cost, shipping and
+edition-specific SKU still need confirmation. Keep it quote-only. Do not
+repurpose the Golden Horizon 5 × 4 Stripe price or supplier SKU.

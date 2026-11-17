@@ -16,6 +16,7 @@
   const work=works[active];
   artwork.value=active;
   $('optionsRoomPick').hidden=active!=='archive-eye';
+  $('optionsCityscapePick').hidden=active!=='archive-horizon';
   material=work.first;
   $('optionsArtwork').src=work.image;
   $('optionsArtwork').alt=work.title;
@@ -37,8 +38,10 @@
   chooseMaterial();
   if(active==='archive-eye'){
    size.value='18 × 22';finish.value='Black floater frame';
-   renderSelection();
+  }else if(active==='archive-horizon'){
+   size.value='10 × 8';finish.value='Framed & matted';
   }
+  renderSelection();
  }
  function chooseMaterial(){
   const offer=works[active].offers[material];
@@ -52,7 +55,9 @@
   const edition=sandboxEdition(active,material,size.value,finish.value);
   const action=$('optionsAction');
   const proof=offer.large?.includes(size.value);
-  const selection=size.value+' in · '+materials[material].label+' · '+finish.value;
+  const selectedFinish=active==='archive-horizon'&&material==='matte'&&size.value==='10 × 8'&&finish.value==='Framed & matted'
+   ?'Slim black frame with mat':finish.value;
+  const selection=size.value+' in · '+materials[material].label+' · '+selectedFinish;
   const [width,height]=size.value.split(' × ').map(Number);
   const shape=Math.abs((width/height)/work.ratio-1)>0.025;
   $('optionsFit').textContent=work.fit+(shape?' This size may need a border or a crop.':'');
@@ -65,7 +70,7 @@
    action.textContent='Continue to test checkout';
   }else{
    const subject='HL Art Gallery print quote: '+work.title;
-   const body='Hello HL Art Gallery,\n\nPlease quote this print option:\n'+work.title+'\n'+size.value+' inches (width × height)\n'+materials[material].label+'\n'+finish.value+'\n\nDelivery ZIP code (optional):\n\nThank you.';
+   const body='Hello HL Art Gallery,\n\nPlease quote this print option:\n'+work.title+'\n'+size.value+' inches (width × height)\n'+materials[material].label+'\n'+selectedFinish+'\n\nDelivery ZIP code (optional):\n\nThank you.';
    action.href='mailto:info@hugslinks.com?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(body);
    action.textContent=proof?'Email for a proof & quote':'Email for a quote';
   }

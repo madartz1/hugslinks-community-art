@@ -6,6 +6,7 @@ const params=new URLSearchParams(location.search),q=params.get('artwork');
 if(Object.hasOwn(works,q))work=q;
 const livingRoomEdition=work==='archive-eye'&&params.get('edition')==='swan-18x22-black-floater';
 if(livingRoomEdition)$('printWidth').value='18';
+if(work==='archive-horizon'&&params.get('edition')==='horizon-10x8-matte-framed')$('printWidth').value='10';
 $('plannerWork').value=work;
 const position={x:50,y:42};
 function status(text){$('plannerStatus').textContent=text}
